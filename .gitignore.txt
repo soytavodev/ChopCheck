@@ -1,0 +1,11 @@
+# Ignorar archivos de sistema y logs
+.DS_Store
+Thumbs.db
+*.log
+
+# SEGURIDAD: Ignorar credenciales de base de datos
+config/db_connect.php
+
+# Ignorar carpeta de IDEs (VS Code, etc)
+.vscode/
+.idea/
