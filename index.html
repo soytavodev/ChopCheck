@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ChopCheck | Divide, paga, vete</title>
+    
+    <link rel="icon" type="image/png" href="chopcheck.png">
+    
+    <style>
+        /* === ESTILO VISUAL: TABERNA RÚSTICA === */
+        :root {
+            --madera-oscura: #3E2723; --madera-media: #5D4037; --madera-clara: #8D6E63;
+            --clavo-hierro: #212121; --fondo-papel: #F5F5DC; --texto-tinta: #2c1e1a;
+            --verde-exito: #33691E; --rojo-tachado: #BF360C;
+        }
+
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background-color: #4E342E;
+            background-image: repeating-linear-gradient(90deg, #4E342E 0px, #4E342E 40px, #3E2723 41px, #3E2723 80px);
+            color: var(--texto-tinta); margin: 0; padding: 0;
+            display: flex; justify-content: center; align-items: center;
+            height: 100vh; width: 100vw; box-sizing: border-box;
+            user-select: none; overflow: hidden;
+        }
+
+        /* Marco Decorativo */
+        body::before {
+            content: ""; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 50;
+            pointer-events: none; border: 15px solid var(--madera-oscura);
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.7);
+            background-image: radial-gradient(circle at 15px 15px, var(--clavo-hierro) 5px, transparent 6px),
+                radial-gradient(circle at calc(100% - 15px) 15px, var(--clavo-hierro) 5px, transparent 6px),
+                radial-gradient(circle at 15px calc(100% - 15px), var(--clavo-hierro) 5px, transparent 6px),
+                radial-gradient(circle at calc(100% - 15px) calc(100% - 15px), var(--clavo-hierro) 5px, transparent 6px);
+        }
+
+        /* CONTENEDOR PRINCIPAL */
+        .container { 
+            width: 100%; max-width: 420px; height: 85vh;
+            background: var(--fondo-papel); 
+            border-radius: 2px; box-shadow: 0 15px 30px rgba(0,0,0,0.5); 
+            background-image: linear-gradient(rgba(255,255,255,0.8), rgba(255,255,255,0.8));
+            position: relative; z-index: 100; 
+            display: flex; flex-direction: column;
+            overflow: hidden;
+        }
+        
+        /* ESTILOS DE TEXTO PRINCIPALES */
+        h1 { 
+            text-align: center; font-family: 'Courier New', Courier, monospace;
+            text-transform: uppercase; font-weight: 900; color: var(--madera-oscura);
+            margin: 0; font-size: 2rem; letter-spacing: -1px;
+            border-bottom: 4px double var(--madera-oscura); padding-bottom: 10px;
+        }
+
+        h2.slogan {
+            font-family: 'Georgia', serif; font-style: italic; text-align: center;
+            color: #795548; font-size: 1rem; margin-top: 10px; margin-bottom: 20px;
+        }
+
+        /* CABECERA FIJA ARRIBA (APP) */
+        .header-area {
+            flex-shrink: 0; padding: 20px 20px 10px 20px;
+            background: var(--fondo-papel);
+            border-bottom: 2px dashed var(--madera-clara);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            z-index: 10; text-align: center;
+        }
+
+        /* === TRUCO PARA EL LOGO === */
+        /* mix-blend-mode: multiply hace que el blanco de la imagen se vuelva transparente 
+           al superponerse con el color crema del fondo. ¡Magia CSS! */
+        .login-logo-img {
+            max-width: 160px; height: auto; display: block; margin: 0 auto 15px auto;
+            mix-blend-mode: multiply; /* <--- EL TRUCO */
+        }
+        
+        .header-logo-small {
+             max-width: 100px; height: auto; margin-bottom: 5px;
+             mix-blend-mode: multiply; /* <--- EL TRUCO */
+        }
+
+        /* Ticket Resumen */
+        .ticket-header {
+            margin-top: 10px;
+            background: rgba(255,255,255,0.6); text-align: center;
+            border: 1px solid #D7CCC8; padding: 10px; border-radius: 4px;
+        }
+        .fila-total-mesa {
+            border-bottom: 1px solid #D7CCC8; padding-bottom: 5px; margin-bottom: 5px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .label-mesa { font-size: 0.8rem; text-transform: uppercase; color: var(--madera-media); font-weight: bold; }
+        .monto-mesa { font-family: 'Courier New', monospace; font-size: 1.1rem; font-weight: bold; color: var(--madera-media); }
+        .fila-total-mio { display: flex; justify-content: space-between; align-items: center; padding-top: 2px; }
+        .label-mio { font-size: 1rem; text-transform: uppercase; color: var(--madera-oscura); font-weight: 900; }
+        .monto-mio { font-family: 'Courier New', monospace; font-size: 1.8rem; font-weight: 900; color: var(--madera-oscura); }
+
+        /* LISTA CON SCROLL */
+        #lista-items-container {
+            flex-grow: 1; overflow-y: auto; padding: 10px 20px;
+            background: rgba(255,255,255,0.3);
+        }
+        #lista-items-container::-webkit-scrollbar { width: 8px; }
+        #lista-items-container::-webkit-scrollbar-track { background: #f1f1f1; }
+        #lista-items-container::-webkit-scrollbar-thumb { background: var(--madera-clara); border-radius: 4px; }
+        #lista-items-container::-webkit-scrollbar-thumb:hover { background: var(--madera-oscura); }
+
+        /* PIE DE PÁGINA FIJO ABAJO */
+        .footer-area {
+            flex-shrink: 0; padding: 15px 20px;
+            background: var(--fondo-papel); border-top: 1px solid #D7CCC8;
+            text-align: center; z-index: 10;
+        }
+
+        /* --- RESTO DE ESTILOS --- */
+        .item-card { 
+            display: flex; justify-content: space-between; align-items: center; 
+            padding: 12px 5px; border-bottom: 1px dotted #8D6E63; cursor: pointer; position: relative;
+        }
+        .item-card:last-child { border-bottom: none; }
+        .libre { background: transparent; }
+        .asignado-mio { 
+            background-color: #DCEDC8; color: var(--verde-exito); font-weight: bold; 
+            border-left: 4px solid var(--verde-exito); padding-left: 6px;
+        } 
+        .asignado-otro { 
+            background-color: #FFCCBC; color: var(--rojo-tachado); opacity: 0.7; 
+            text-decoration: line-through; padding-left: 6px; pointer-events: none;
+        }
+        .precio { font-weight: bold; font-family: 'Courier New', monospace; font-size: 1.1rem; min-width: 60px; text-align: right; }
+
+        .acciones-wrapper { display: flex; gap: 5px; }
+        .btn-action {
+            background: white; border: 1px solid var(--madera-clara);
+            color: var(--madera-oscura); width: 32px; height: 32px; border-radius: 50%;
+            font-size: 1rem; display: flex; align-items: center; 
+            justify-content: center; padding: 0; cursor: pointer; z-index: 102;
+            box-shadow: 1px 1px 3px rgba(0,0,0,0.2); transition: transform 0.1s;
+        }
+        .btn-action:active { transform: scale(0.9); }
+        .btn-undo { background: #FFEBEE; color: #D32F2F; border-color: #D32F2F; }
+        .btn-trash { background: #FFF; color: #5D4037; border-color: #5D4037; }
+        
+        button.btn-primary { 
+            width: 100%; padding: 15px; background-color: var(--madera-oscura); color: #FFECB3; 
+            border: 2px solid #281815; font-family: 'Segoe UI', sans-serif; 
+            text-transform: uppercase; letter-spacing: 1px; font-size: 16px; font-weight: bold; 
+            cursor: pointer;
+        }
+        button.btn-primary:active { transform: translateY(2px); background-color: #281815; }
+        .btn-secondary {
+            background-color: transparent; color: var(--madera-oscura);
+            border: 1px dashed var(--madera-oscura); font-size: 12px; padding: 10px; width: 100%;
+            cursor: pointer;
+        }
+
+        input.login-input { 
+            width: 100%; padding: 12px; margin: 15px 0; border: 2px solid #8D6E63; 
+            background: #FFF8E1; color: #3E2723; font-family: 'Courier New', monospace; 
+            font-weight: bold; box-sizing: border-box; outline: none;
+        }
+
+        #modal-split {
+            position: fixed; top:0; left:0; width:100%; height:100%;
+            background: rgba(40, 24, 21, 0.95); z-index: 500;
+            display: none; align-items: center; justify-content: center;
+        }
+        .modal-papel {
+            background: var(--fondo-papel); padding: 25px; width: 85%; max-width: 320px;
+            border: 2px solid var(--madera-oscura); box-shadow: 0 0 20px #000; text-align: center;
+        }
+        input.num-input {
+            width: 60px; padding: 10px; font-size: 1.5rem; text-align: center;
+            border: 2px solid var(--madera-oscura); background: white; margin: 0 10px;
+            font-family: 'Courier New', monospace; font-weight: bold;
+        }
+
+        .screen { display: none; width: 100%; height: 100%; flex-direction: column; }
+        .active { display: flex; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* Login Screen ajustado */
+        #screen-login {
+            justify-content: center;
+            padding: 30px 20px; 
+            box-sizing: border-box;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+
+<div id="modal-split">
+    <div class="modal-papel">
+        <h3 style="font-family:'Courier New'; margin-top:0;">✂️ REPARTIR</h3>
+        <p id="split-name" style="font-weight:bold; color:var(--madera-oscura);">Producto</p>
+        <hr style="border:0; border-top:1px dashed var(--madera-clara); margin: 15px 0;">
+        <p>¿Entre cuántas personas?</p>
+        <div style="display:flex; justify-content:center; align-items:center; margin-bottom: 20px;">
+            <button onclick="ajustarInput(-1)" style="width:40px; height:40px; font-size:1.2rem; cursor:pointer;">-</button>
+            <input type="number" id="input-parts" class="num-input" value="2" min="2" max="20" readonly>
+            <button onclick="ajustarInput(1)" style="width:40px; height:40px; font-size:1.2rem; cursor:pointer;">+</button>
+        </div>
+        <button class="btn-primary" onclick="confirmarDivision()">DIVIDIR AHORA</button>
+        <button onclick="cerrarModal()" style="background:transparent; border:none; color:var(--madera-clara); margin-top:15px; cursor:pointer; text-decoration:underline; font-size: 0.9rem;">Cancelar</button>
+    </div>
+</div>
+
+<div class="container">
+    
+    <div id="screen-login" class="screen">
+        <div style="text-align: center; width: 100%;">
+            <img src="chopcheck.png" alt="ChopCheck Logo" class="login-logo-img">
+            <h1>CHOP CHECK</h1>
+            <h2 class="slogan">🔪️ Divide, paga, vete 🧾️</h2>
+        </div>
+        
+        <div style="margin-top: 30px; text-align: center; width: 100%;">
+            <p style="font-family: 'Georgia', serif; font-style: italic; margin-bottom: 5px;">¿Quién ocupa esta silla?</p>
+            <input type="text" id="input-alias" class="login-input" placeholder="TU APODO..." autocomplete="off">
+            <button class="btn-primary" onclick="unirseMesa()">🍺 ENTRAR</button>
+        </div>
+    </div>
+
+    <div id="screen-bill" class="screen">
+        
+        <div class="header-area">
+            <img src="chopcheck.png" alt="ChopCheck Logo" class="header-logo-small">
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                <span style="font-family:'Courier New'; font-weight:bold;">MESA 1</span>
+                <span id="user-display" style="font-family:'Courier New'; font-weight: bold; background:var(--madera-oscura); color:#FFF; padding: 2px 8px; border-radius: 2px;">...</span>
+            </div>
+
+            <div class="ticket-header">
+                <div class="fila-total-mesa">
+                    <span class="label-mesa">Total Mesa:</span>
+                    <span class="monto-mesa" id="mesa-total-display">0.00 €</span>
+                </div>
+                <div class="fila-total-mio">
+                    <span class="label-mio">TU PARTE:</span>
+                    <span class="monto-mio" id="mi-total-display">0.00 €</span>
+                </div>
+            </div>
+        </div>
+        
+        <div id="lista-items-container">
+            <div id="lista-items">
+                <p style="text-align: center; color: #8D6E63; margin-top: 50px;">Trayendo la cuenta...</p>
+            </div>
+        </div>
+
+        <div class="footer-area">
+            <button class="btn-secondary" onclick="cerrarSesion()">Salir / Cambiar Nombre</button>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    // JS Lógica
+    let MI_ID = localStorage.getItem('chopcheck_uid');
+    let MI_ALIAS = localStorage.getItem('chopcheck_alias');
+    let ITEM_A_DIVIDIR = null;
+
+    function init() {
+        if (MI_ID && MI_ALIAS) {
+            mostrarPantalla('screen-bill');
+            document.getElementById('user-display').innerText = MI_ALIAS;
+            cargarCuenta();
+            setInterval(cargarCuenta, 2000);
+        } else {
+            mostrarPantalla('screen-login');
+        }
+    }
+
+    async function unirseMesa() {
+        const alias = document.getElementById('input-alias').value.trim();
+        if (!alias) return alert("¡Eh! Necesitas un nombre.");
+        try {
+            const res = await fetch('api/join_session.php', { method: 'POST', body: JSON.stringify({ alias }) });
+            const data = await res.json();
+            if (data.success) {
+                localStorage.setItem('chopcheck_uid', data.user_id);
+                localStorage.setItem('chopcheck_alias', alias);
+                MI_ID = data.user_id; MI_ALIAS = alias;
+                location.reload();
+            } else alert(data.error);
+        } catch (e) { alert("Error conexión"); }
+    }
+
+    async function cargarCuenta() {
+        try {
+            const res = await fetch('api/obtener_items.php?v=' + Math.random()); 
+            const items = await res.json();
+            calcularTotales(items);
+            dibujarItems(items);
+        } catch (e) { console.error(e); }
+    }
+
+    function calcularTotales(items) {
+        let miTotal = 0, mesaTotal = 0;
+        items.forEach(item => {
+            mesaTotal += parseFloat(item.precio);
+            if (item.estado === 'ASIGNADO' && String(item.id_usuario_asignado) === String(MI_ID)) {
+                miTotal += parseFloat(item.precio);
+            }
+        });
+        document.getElementById('mi-total-display').innerText = miTotal.toFixed(2) + ' €';
+        document.getElementById('mesa-total-display').innerText = mesaTotal.toFixed(2) + ' €';
+    }
+
+    function dibujarItems(items) {
+        const contenedor = document.getElementById('lista-items');
+        contenedor.innerHTML = ''; 
+        if (items.length === 0) { contenedor.innerHTML = '<p style="text-align:center">Mesa limpia.</p>'; return; }
+
+        items.forEach(item => {
+            const div = document.createElement('div');
+            let clase = 'libre';
+            const esMio = (item.estado === 'ASIGNADO' && String(item.id_usuario_asignado) === String(MI_ID));
+            const esLibre = (item.estado === 'LIBRE');
+            const grupoSplit = item.grupo_split || null;
+            const esDividido = (grupoSplit !== null && grupoSplit !== "");
+
+            if (item.estado === 'ASIGNADO') clase = esMio ? 'asignado-mio' : 'asignado-otro';
+            div.className = `item-card ${clase}`;
+
+            let html = `
+                <div style="flex-grow:1; padding-right:10px;" onclick="toggleItem(${item.id}, '${item.estado}', ${item.id_usuario_asignado})">
+                    <span style="font-family:'Courier New'; font-weight:600; font-size: 1.05em;">${item.nombre_producto}</span>
+                </div>
+            `;
+
+            if (esLibre) {
+                html += `<div class="acciones-wrapper">`;
+                if (esDividido) {
+                    html += `<div class="btn-action btn-undo" onclick="deshacerDivision(${item.id})">↩️</div>`;
+                } else {
+                    html += `<div class="btn-action" onclick="abrirDivision(${item.id}, '${item.nombre_producto}')">✂️</div>`;
+                    html += `<div class="btn-action btn-trash" onclick="eliminarItem(${item.id}, '${item.nombre_producto}')">🗑️</div>`;
+                }
+                html += `</div>`;
+            }
+
+            html += `<div class="precio">${parseFloat(item.precio).toFixed(2)}</div>`;
+            div.innerHTML = html;
+            contenedor.appendChild(div);
+        });
+    }
+
+    async function toggleItem(itemId, estado, ownerId) {
+        if (!MI_ID) { alert("Sesión expirada."); location.reload(); return; }
+        if (estado === 'ASIGNADO' && String(ownerId) !== String(MI_ID)) return; 
+        try {
+            await fetch('api/toggle_item.php', { method: 'POST', body: JSON.stringify({ item_id: itemId, user_id: MI_ID }) });
+            cargarCuenta();
+        } catch (e) {}
+    }
+
+    function abrirDivision(id, nombre) {
+        ITEM_A_DIVIDIR = id;
+        document.getElementById('split-name').innerText = nombre;
+        document.getElementById('input-parts').value = 2; 
+        document.getElementById('modal-split').style.display = 'flex';
+    }
+
+    function ajustarInput(delta) {
+        const input = document.getElementById('input-parts');
+        let val = parseInt(input.value) + delta;
+        if(val < 2) val = 2; if(val > 20) val = 20;
+        input.value = val;
+    }
+
+    function cerrarModal() {
+        document.getElementById('modal-split').style.display = 'none';
+        ITEM_A_DIVIDIR = null;
+    }
+
+    async function confirmarDivision() {
+        const partes = document.getElementById('input-parts').value;
+        if (!ITEM_A_DIVIDIR || partes < 2) return;
+        try {
+            const res = await fetch('api/split_item.php', {
+                method: 'POST', body: JSON.stringify({ item_id: ITEM_A_DIVIDIR, parts: partes })
+            });
+            const data = await res.json();
+            if (data.success) { cerrarModal(); cargarCuenta(); } else { alert(data.error); }
+        } catch (e) { alert("Error al dividir"); }
+    }
+
+    async function deshacerDivision(itemId) {
+        if(!confirm("¿Reunir las partes y volver al original?")) return;
+        try {
+            const res = await fetch('api/undo_split.php', {
+                method: 'POST', body: JSON.stringify({ item_id: itemId })
+            });
+            const data = await res.json();
+            if (data.success) { cargarCuenta(); } else { alert(data.error); }
+        } catch (e) { alert("Error al unir"); }
+    }
+
+    async function eliminarItem(itemId, nombre) {
+        if(!confirm(`¿Borrar "${nombre}"?`)) return;
+        try {
+            const res = await fetch('api/delete_item.php', {
+                method: 'POST', body: JSON.stringify({ item_id: itemId })
+            });
+            const data = await res.json();
+            if (data.success) { cargarCuenta(); } else { alert(data.error); }
+        } catch (e) { alert("Error al borrar"); }
+    }
+
+    function cerrarSesion() { if(confirm("¿Salir?")) { localStorage.clear(); location.reload(); } }
+    function mostrarPantalla(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+    }
+    window.onload = init;
+</script>
+</body>
+</html>
