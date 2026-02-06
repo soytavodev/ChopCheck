@@ -12,7 +12,7 @@
         :root {
             --madera-oscura: #3E2723; --madera-media: #5D4037; --madera-clara: #8D6E63;
             --clavo-hierro: #212121; --fondo-papel: #F5F5DC; --texto-tinta: #2c1e1a;
-            --verde-exito: #33691E; --rojo-tachado: #BF360C;
+            --verde-exito: #33691E; --rojo-tachado: #BF360C; --dorado: #FFD700;
         }
 
         body { 
@@ -47,7 +47,6 @@
             overflow: hidden;
         }
         
-        /* ESTILOS DE TEXTO PRINCIPALES */
         h1 { 
             text-align: center; font-family: 'Courier New', Courier, monospace;
             text-transform: uppercase; font-weight: 900; color: var(--madera-oscura);
@@ -69,18 +68,8 @@
             z-index: 10; text-align: center;
         }
 
-        /* === TRUCO PARA EL LOGO === */
-        /* mix-blend-mode: multiply hace que el blanco de la imagen se vuelva transparente 
-           al superponerse con el color crema del fondo. ¡Magia CSS! */
-        .login-logo-img {
-            max-width: 160px; height: auto; display: block; margin: 0 auto 15px auto;
-            mix-blend-mode: multiply; /* <--- EL TRUCO */
-        }
-        
-        .header-logo-small {
-             max-width: 100px; height: auto; margin-bottom: 5px;
-             mix-blend-mode: multiply; /* <--- EL TRUCO */
-        }
+        .login-logo-img { max-width: 160px; height: auto; display: block; margin: 0 auto 15px auto; mix-blend-mode: multiply; }
+        .header-logo-small { max-width: 100px; height: auto; margin-bottom: 5px; mix-blend-mode: multiply; }
 
         /* Ticket Resumen */
         .ticket-header {
@@ -151,9 +140,19 @@
             cursor: pointer;
         }
         button.btn-primary:active { transform: translateY(2px); background-color: #281815; }
+        
+        /* BOTÓN DE PAGAR (NUEVO) */
+        button.btn-pay {
+            width: 100%; padding: 15px; background-color: var(--verde-exito); color: #FFF; 
+            border: 2px solid #1B5E20; font-family: 'Segoe UI', sans-serif; 
+            text-transform: uppercase; letter-spacing: 1px; font-size: 18px; font-weight: 900; 
+            cursor: pointer; box-shadow: 0 4px 0 #1B5E20; margin-bottom: 10px;
+        }
+        button.btn-pay:active { transform: translateY(4px); box-shadow: none; }
+
         .btn-secondary {
             background-color: transparent; color: var(--madera-oscura);
-            border: 1px dashed var(--madera-oscura); font-size: 12px; padding: 10px; width: 100%;
+            border: 1px dashed var(--madera-oscura); font-size: 12px; padding: 8px; width: 100%;
             cursor: pointer;
         }
 
@@ -163,7 +162,8 @@
             font-weight: bold; box-sizing: border-box; outline: none;
         }
 
-        #modal-split {
+        /* Modal Generico (sirve para split y para pago) */
+        .modal-overlay {
             position: fixed; top:0; left:0; width:100%; height:100%;
             background: rgba(40, 24, 21, 0.95); z-index: 500;
             display: none; align-items: center; justify-content: center;
@@ -177,23 +177,21 @@
             border: 2px solid var(--madera-oscura); background: white; margin: 0 10px;
             font-family: 'Courier New', monospace; font-weight: bold;
         }
+        
+        /* Lista dentro del modal de pago */
+        .pay-list { text-align: left; max-height: 200px; overflow-y: auto; margin: 15px 0; border: 1px solid #ccc; padding: 5px; background: #fff; }
+        .pay-item { display: flex; justify-content: space-between; border-bottom: 1px dashed #eee; padding: 5px 0; font-size: 0.9rem; }
 
         .screen { display: none; width: 100%; height: 100%; flex-direction: column; }
         .active { display: flex; animation: fadeIn 0.3s; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        /* Login Screen ajustado */
-        #screen-login {
-            justify-content: center;
-            padding: 30px 20px; 
-            box-sizing: border-box;
-            align-items: center;
-        }
+        #screen-login { justify-content: center; padding: 30px 20px; box-sizing: border-box; align-items: center; }
     </style>
 </head>
 <body>
 
-<div id="modal-split">
+<div id="modal-split" class="modal-overlay">
     <div class="modal-papel">
         <h3 style="font-family:'Courier New'; margin-top:0;">✂️ REPARTIR</h3>
         <p id="split-name" style="font-weight:bold; color:var(--madera-oscura);">Producto</p>
@@ -205,7 +203,25 @@
             <button onclick="ajustarInput(1)" style="width:40px; height:40px; font-size:1.2rem; cursor:pointer;">+</button>
         </div>
         <button class="btn-primary" onclick="confirmarDivision()">DIVIDIR AHORA</button>
-        <button onclick="cerrarModal()" style="background:transparent; border:none; color:var(--madera-clara); margin-top:15px; cursor:pointer; text-decoration:underline; font-size: 0.9rem;">Cancelar</button>
+        <button onclick="cerrarModal('modal-split')" style="background:transparent; border:none; color:var(--madera-clara); margin-top:15px; cursor:pointer; text-decoration:underline; font-size: 0.9rem;">Cancelar</button>
+    </div>
+</div>
+
+<div id="modal-pay" class="modal-overlay">
+    <div class="modal-papel">
+        <h3 style="font-family:'Courier New'; margin-top:0; color:var(--verde-exito);">🧾 RESUMEN</h3>
+        <p style="font-size:0.9rem; color:#795548;">Muestra esto en caja:</p>
+        
+        <div id="pay-list-content" class="pay-list">
+            </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; font-weight: bold; font-family:'Courier New'; font-size:1.2rem;">
+            <span>TOTAL:</span>
+            <span id="pay-total-amount">0.00 €</span>
+        </div>
+        
+        <button class="btn-primary" onclick="confirmarPagoReal()">✅ CONFIRMAR PAGO</button>
+        <button onclick="cerrarModal('modal-pay')" style="background:transparent; border:none; color:var(--madera-clara); margin-top:15px; cursor:pointer; text-decoration:underline; font-size: 0.9rem;">Seguir pidiendo</button>
     </div>
 </div>
 
@@ -254,6 +270,7 @@
         </div>
 
         <div class="footer-area">
+            <button class="btn-pay" onclick="abrirResumenPago()">💰 IR A CAJA</button>
             <button class="btn-secondary" onclick="cerrarSesion()">Salir / Cambiar Nombre</button>
         </div>
 
@@ -261,10 +278,10 @@
 </div>
 
 <script>
-    // JS Lógica
     let MI_ID = localStorage.getItem('chopcheck_uid');
     let MI_ALIAS = localStorage.getItem('chopcheck_alias');
     let ITEM_A_DIVIDIR = null;
+    let MIS_ITEMS_CACHE = []; // Guardamos aquí lo que es mío para el resumen
 
     function init() {
         if (MI_ID && MI_ALIAS) {
@@ -303,10 +320,13 @@
 
     function calcularTotales(items) {
         let miTotal = 0, mesaTotal = 0;
+        MIS_ITEMS_CACHE = []; // Resetear cache
+
         items.forEach(item => {
             mesaTotal += parseFloat(item.precio);
             if (item.estado === 'ASIGNADO' && String(item.id_usuario_asignado) === String(MI_ID)) {
                 miTotal += parseFloat(item.precio);
+                MIS_ITEMS_CACHE.push(item); // Guardar para el resumen
             }
         });
         document.getElementById('mi-total-display').innerText = miTotal.toFixed(2) + ' €';
@@ -315,8 +335,16 @@
 
     function dibujarItems(items) {
         const contenedor = document.getElementById('lista-items');
+        
+        // Comprobamos si hay cambios significativos para evitar parpadeos, 
+        // pero por simplicidad repintamos.
+        // Solo mostramos "Mesa limpia" si de verdad no hay items en la DB para esta mesa
+        if (items.length === 0) { 
+            contenedor.innerHTML = '<p style="text-align:center; margin-top:40px; color:#8D6E63; font-style:italic;">Todo pagado o mesa vacía.</p>'; 
+            return; 
+        }
+
         contenedor.innerHTML = ''; 
-        if (items.length === 0) { contenedor.innerHTML = '<p style="text-align:center">Mesa limpia.</p>'; return; }
 
         items.forEach(item => {
             const div = document.createElement('div');
@@ -354,13 +382,21 @@
 
     async function toggleItem(itemId, estado, ownerId) {
         if (!MI_ID) { alert("Sesión expirada."); location.reload(); return; }
-        if (estado === 'ASIGNADO' && String(ownerId) !== String(MI_ID)) return; 
+        if (estado === 'ASIGNADO' && String(ownerId) !== String(MI_ID)) { console.log("Item de otro"); return; }
+
         try {
-            await fetch('api/toggle_item.php', { method: 'POST', body: JSON.stringify({ item_id: itemId, user_id: MI_ID }) });
-            cargarCuenta();
-        } catch (e) {}
+            const respuesta = await fetch('api/toggle_item.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ item_id: itemId, user_id: MI_ID })
+            });
+            const data = await respuesta.json();
+            if (data.success) { cargarCuenta(); } 
+            else { alert(data.error); }
+        } catch (e) { alert("Error toggle: " + e.message); }
     }
 
+    // --- División ---
     function abrirDivision(id, nombre) {
         ITEM_A_DIVIDIR = id;
         document.getElementById('split-name').innerText = nombre;
@@ -375,8 +411,8 @@
         input.value = val;
     }
 
-    function cerrarModal() {
-        document.getElementById('modal-split').style.display = 'none';
+    function cerrarModal(id) {
+        document.getElementById(id).style.display = 'none';
         ITEM_A_DIVIDIR = null;
     }
 
@@ -388,16 +424,14 @@
                 method: 'POST', body: JSON.stringify({ item_id: ITEM_A_DIVIDIR, parts: partes })
             });
             const data = await res.json();
-            if (data.success) { cerrarModal(); cargarCuenta(); } else { alert(data.error); }
+            if (data.success) { cerrarModal('modal-split'); cargarCuenta(); } else { alert(data.error); }
         } catch (e) { alert("Error al dividir"); }
     }
 
     async function deshacerDivision(itemId) {
         if(!confirm("¿Reunir las partes y volver al original?")) return;
         try {
-            const res = await fetch('api/undo_split.php', {
-                method: 'POST', body: JSON.stringify({ item_id: itemId })
-            });
+            const res = await fetch('api/undo_split.php', { method: 'POST', body: JSON.stringify({ item_id: itemId }) });
             const data = await res.json();
             if (data.success) { cargarCuenta(); } else { alert(data.error); }
         } catch (e) { alert("Error al unir"); }
@@ -406,12 +440,53 @@
     async function eliminarItem(itemId, nombre) {
         if(!confirm(`¿Borrar "${nombre}"?`)) return;
         try {
-            const res = await fetch('api/delete_item.php', {
-                method: 'POST', body: JSON.stringify({ item_id: itemId })
-            });
+            const res = await fetch('api/delete_item.php', { method: 'POST', body: JSON.stringify({ item_id: itemId }) });
             const data = await res.json();
             if (data.success) { cargarCuenta(); } else { alert(data.error); }
         } catch (e) { alert("Error al borrar"); }
+    }
+
+    // --- PAGO ---
+    function abrirResumenPago() {
+        if (MIS_ITEMS_CACHE.length === 0) {
+            alert("¡No has seleccionado nada! Toca los productos para asignártelos.");
+            return;
+        }
+        
+        const lista = document.getElementById('pay-list-content');
+        const totalDisplay = document.getElementById('pay-total-amount');
+        lista.innerHTML = '';
+        
+        let total = 0;
+        MIS_ITEMS_CACHE.forEach(item => {
+            total += parseFloat(item.precio);
+            const div = document.createElement('div');
+            div.className = 'pay-item';
+            div.innerHTML = `<span>${item.nombre_producto}</span><span>${item.precio} €</span>`;
+            lista.appendChild(div);
+        });
+        
+        totalDisplay.innerText = total.toFixed(2) + " €";
+        document.getElementById('modal-pay').style.display = 'flex';
+    }
+
+    async function confirmarPagoReal() {
+        if(!confirm("¿Confirmar que has pagado en caja? Estos items desaparecerán de la cuenta.")) return;
+        
+        try {
+            const res = await fetch('api/pay_items.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: MI_ID })
+            });
+            const data = await res.json();
+            if (data.success) {
+                cerrarModal('modal-pay');
+                cargarCuenta(); // Se refresca y los items pagados desaparecen
+            } else {
+                alert("Error al procesar pago: " + data.error);
+            }
+        } catch (e) { alert("Error de conexión en pago"); }
     }
 
     function cerrarSesion() { if(confirm("¿Salir?")) { localStorage.clear(); location.reload(); } }

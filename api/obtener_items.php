@@ -5,10 +5,11 @@ error_reporting(E_ALL);
 header('Content-Type: application/json');
 require_once '../config/db_connect.php';
 
-// CORRECCIÓN CRÍTICA:
-// Antes no pedíamos 'grupo_split', por eso el frontend no sabía qué items eran mitades.
-// Ahora lo incluimos en la consulta:
-$sql = "SELECT id, nombre_producto, precio, estado, id_usuario_asignado, grupo_split FROM items";
+// MODIFICACIÓN: Añadimos "WHERE estado != 'PAGADO'"
+// Así los items pagados desaparecen de la vista pública y del total.
+$sql = "SELECT id, nombre_producto, precio, estado, id_usuario_asignado, grupo_split 
+        FROM items 
+        WHERE estado != 'PAGADO'";
 
 $resultado = $conn->query($sql);
 
