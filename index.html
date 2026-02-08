@@ -68,6 +68,7 @@
             z-index: 10; text-align: center;
         }
 
+        /* Logos con efecto Multiply para quitar fondo blanco visualmente */
         .login-logo-img { max-width: 160px; height: auto; display: block; margin: 0 auto 15px auto; mix-blend-mode: multiply; }
         .header-logo-small { max-width: 100px; height: auto; margin-bottom: 5px; mix-blend-mode: multiply; }
 
@@ -141,7 +142,7 @@
         }
         button.btn-primary:active { transform: translateY(2px); background-color: #281815; }
         
-        /* BOTÓN DE PAGAR (NUEVO) */
+        /* BOTÓN DE PAGAR */
         button.btn-pay {
             width: 100%; padding: 15px; background-color: var(--verde-exito); color: #FFF; 
             border: 2px solid #1B5E20; font-family: 'Segoe UI', sans-serif; 
@@ -149,6 +150,15 @@
             cursor: pointer; box-shadow: 0 4px 0 #1B5E20; margin-bottom: 10px;
         }
         button.btn-pay:active { transform: translateY(4px); box-shadow: none; }
+
+        /* BOTÓN DE AVISAR */
+        button.btn-alert {
+            width: 100%; padding: 12px; background-color: #FF9800; color: #FFF; 
+            border: none; font-family: 'Segoe UI', sans-serif; font-weight: bold;
+            cursor: pointer; border-radius: 4px; margin-bottom: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        button.btn-alert:active { transform: translateY(2px); }
 
         .btn-secondary {
             background-color: transparent; color: var(--madera-oscura);
@@ -161,8 +171,15 @@
             background: #FFF8E1; color: #3E2723; font-family: 'Courier New', monospace; 
             font-weight: bold; box-sizing: border-box; outline: none;
         }
+        
+        /* Input del PIN */
+        input.pin-input {
+            width: 100%; padding: 15px; margin: 15px 0; border: 2px solid var(--madera-oscura);
+            background: #FFF; font-size: 1.5rem; text-align: center; letter-spacing: 5px;
+            font-family: 'Courier New', monospace; font-weight: bold; box-sizing: border-box;
+        }
 
-        /* Modal Generico (sirve para split y para pago) */
+        /* Modales */
         .modal-overlay {
             position: fixed; top:0; left:0; width:100%; height:100%;
             background: rgba(40, 24, 21, 0.95); z-index: 500;
@@ -178,8 +195,7 @@
             font-family: 'Courier New', monospace; font-weight: bold;
         }
         
-        /* Lista dentro del modal de pago */
-        .pay-list { text-align: left; max-height: 200px; overflow-y: auto; margin: 15px 0; border: 1px solid #ccc; padding: 5px; background: #fff; }
+        .pay-list { text-align: left; max-height: 150px; overflow-y: auto; margin: 10px 0; border: 1px solid #ccc; padding: 5px; background: #fff; }
         .pay-item { display: flex; justify-content: space-between; border-bottom: 1px dashed #eee; padding: 5px 0; font-size: 0.9rem; }
 
         .screen { display: none; width: 100%; height: 100%; flex-direction: column; }
@@ -210,18 +226,23 @@
 <div id="modal-pay" class="modal-overlay">
     <div class="modal-papel">
         <h3 style="font-family:'Courier New'; margin-top:0; color:var(--verde-exito);">🧾 RESUMEN</h3>
-        <p style="font-size:0.9rem; color:#795548;">Muestra esto en caja:</p>
         
         <div id="pay-list-content" class="pay-list">
             </div>
 
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; font-weight: bold; font-family:'Courier New'; font-size:1.2rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-weight: bold; font-family:'Courier New'; font-size:1.2rem;">
             <span>TOTAL:</span>
             <span id="pay-total-amount">0.00 €</span>
         </div>
         
-        <button class="btn-primary" onclick="confirmarPagoReal()">✅ CONFIRMAR PAGO</button>
-        <button onclick="cerrarModal('modal-pay')" style="background:transparent; border:none; color:var(--madera-clara); margin-top:15px; cursor:pointer; text-decoration:underline; font-size: 0.9rem;">Seguir pidiendo</button>
+        <button class="btn-alert" onclick="avisarCamarero()">✋ AVISAR AL CAMARERO</button>
+
+        <p style="font-size:0.8rem; color:#795548; margin-top:5px;">O pide el código en caja:</p>
+        
+        <input type="password" id="input-pin" class="pin-input" placeholder="PIN" maxlength="4" inputmode="numeric">
+        
+        <button class="btn-primary" onclick="confirmarPagoReal()">✅ PAGAR</button>
+        <button onclick="cerrarModal('modal-pay')" style="background:transparent; border:none; color:var(--madera-clara); margin-top:15px; cursor:pointer; text-decoration:underline; font-size: 0.9rem;">Cancelar</button>
     </div>
 </div>
 
@@ -281,7 +302,7 @@
     let MI_ID = localStorage.getItem('chopcheck_uid');
     let MI_ALIAS = localStorage.getItem('chopcheck_alias');
     let ITEM_A_DIVIDIR = null;
-    let MIS_ITEMS_CACHE = []; // Guardamos aquí lo que es mío para el resumen
+    let MIS_ITEMS_CACHE = []; 
 
     function init() {
         if (MI_ID && MI_ALIAS) {
@@ -320,13 +341,13 @@
 
     function calcularTotales(items) {
         let miTotal = 0, mesaTotal = 0;
-        MIS_ITEMS_CACHE = []; // Resetear cache
+        MIS_ITEMS_CACHE = [];
 
         items.forEach(item => {
             mesaTotal += parseFloat(item.precio);
             if (item.estado === 'ASIGNADO' && String(item.id_usuario_asignado) === String(MI_ID)) {
                 miTotal += parseFloat(item.precio);
-                MIS_ITEMS_CACHE.push(item); // Guardar para el resumen
+                MIS_ITEMS_CACHE.push(item); 
             }
         });
         document.getElementById('mi-total-display').innerText = miTotal.toFixed(2) + ' €';
@@ -335,10 +356,6 @@
 
     function dibujarItems(items) {
         const contenedor = document.getElementById('lista-items');
-        
-        // Comprobamos si hay cambios significativos para evitar parpadeos, 
-        // pero por simplicidad repintamos.
-        // Solo mostramos "Mesa limpia" si de verdad no hay items en la DB para esta mesa
         if (items.length === 0) { 
             contenedor.innerHTML = '<p style="text-align:center; margin-top:40px; color:#8D6E63; font-style:italic;">Todo pagado o mesa vacía.</p>'; 
             return; 
@@ -446,7 +463,7 @@
         } catch (e) { alert("Error al borrar"); }
     }
 
-    // --- PAGO ---
+    // --- PAGO CON PIN Y AVISO ---
     function abrirResumenPago() {
         if (MIS_ITEMS_CACHE.length === 0) {
             alert("¡No has seleccionado nada! Toca los productos para asignártelos.");
@@ -455,6 +472,7 @@
         
         const lista = document.getElementById('pay-list-content');
         const totalDisplay = document.getElementById('pay-total-amount');
+        document.getElementById('input-pin').value = ''; // Resetear PIN
         lista.innerHTML = '';
         
         let total = 0;
@@ -468,23 +486,58 @@
         
         totalDisplay.innerText = total.toFixed(2) + " €";
         document.getElementById('modal-pay').style.display = 'flex';
+        // No forzamos foco al PIN todavía para que vean el botón de avisar
+    }
+
+    // NUEVA FUNCIÓN: AVISAR AL CAMARERO
+    async function avisarCamarero() {
+        const totalTexto = document.getElementById('pay-total-amount').innerText;
+        const monto = parseFloat(totalTexto);
+        
+        // Efecto visual en el botón
+        const btn = document.querySelector('.btn-alert');
+        const txtOriginal = btn.innerText;
+        btn.innerText = "ENVIANDO AVISO...";
+        btn.disabled = true;
+
+        try {
+            await fetch('api/send_alert.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ 
+                    mesa_id: 1, 
+                    usuario: MI_ALIAS, 
+                    monto: monto 
+                })
+            });
+            alert("🔔 ¡Aviso enviado! El camarero vendrá o te dará el código en breve.");
+        } catch(e) { 
+            alert("Error al avisar. Ve a la barra."); 
+        } finally {
+            btn.innerText = txtOriginal;
+            btn.disabled = false;
+        }
     }
 
     async function confirmarPagoReal() {
-        if(!confirm("¿Confirmar que has pagado en caja? Estos items desaparecerán de la cuenta.")) return;
-        
+        const pin = document.getElementById('input-pin').value;
+        if (!pin) { alert("Introduce el código de seguridad (Pídelo en barra)"); return; }
+
         try {
             const res = await fetch('api/pay_items.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_id: MI_ID })
+                body: JSON.stringify({ user_id: MI_ID, pin: pin }) 
             });
             const data = await res.json();
+            
             if (data.success) {
+                alert("¡Pago confirmado! Gracias por tu visita.");
                 cerrarModal('modal-pay');
-                cargarCuenta(); // Se refresca y los items pagados desaparecen
+                cargarCuenta(); 
             } else {
-                alert("Error al procesar pago: " + data.error);
+                alert("ERROR: " + data.error);
+                document.getElementById('input-pin').value = ''; 
             }
         } catch (e) { alert("Error de conexión en pago"); }
     }
