@@ -1,50 +1,50 @@
 <?php
 // ARCHIVO: api/toggle_item.php
-// OBJETIVO: Asignar o desasignar un producto a un usuario (Toggle)
-
+// VERSIÓN: FINAL & DIAGNÓSTICO
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
 header('Content-Type: application/json');
 require_once '../config/db_connect.php';
 
+// Leer entrada JSON
 $input = json_decode(file_get_contents('php://input'), true);
-$item_id = $input['item_id'] ?? 0;
-$user_id = $input['user_id'] ?? 0;
 
-if (!$item_id || !$user_id) {
-    echo json_encode(['success' => false, 'error' => 'Datos incompletos']);
+// Aceptamos variantes para que no falle si el JS cambia
+$item_id = $input['item_id'] ?? $input['id'] ?? null;
+$usuario_id = $input['usuario_id'] ?? $input['user_id'] ?? null;
+$accion = $input['accion'] ?? $input['action'] ?? null;
+
+// Validación detallada (para que sepas qué pasa)
+if (!$item_id || !$usuario_id || !$accion) {
+    echo json_encode([
+        'success' => false, 
+        'error' => "Faltan datos. Recibido -> Item: " . ($item_id ?? 'NULL') . ", User: " . ($usuario_id ?? 'NULL') . ", Accion: " . ($accion ?? 'NULL')
+    ]);
     exit;
 }
 
-// 1. Consultamos el estado actual del item
-$sql_check = "SELECT estado, id_usuario_asignado FROM items WHERE id = $item_id";
-$res = $conn->query($sql_check);
-$item = $res->fetch_assoc();
-
-if (!$item) {
-    echo json_encode(['success' => false, 'error' => 'Item no encontrado']);
-    exit;
-}
-
-// 2. Lógica del TOGGLE (Interruptor)
-if ($item['estado'] === 'LIBRE') {
-    // A) Si está libre -> Lo asignamos al usuario
-    $sql_update = "UPDATE items SET estado = 'ASIGNADO', id_usuario_asignado = $user_id WHERE id = $item_id";
-
-} elseif ($item['estado'] === 'ASIGNADO' && $item['id_usuario_asignado'] == $user_id) {
-    // B) Si ya es mío -> Lo libero (me he arrepentido)
-    $sql_update = "UPDATE items SET estado = 'LIBRE', id_usuario_asignado = NULL WHERE id = $item_id";
-
+// Lógica de Asignar/Liberar
+if ($accion === 'asignar') {
+    $sql = "UPDATE items SET estado = 'ASIGNADO', id_usuario_asignado = ? WHERE id = ? AND estado = 'LIBRE'";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("ii", $usuario_id, $item_id);
 } else {
-    // C) Si es de otro -> No hago nada (Error o bloqueo)
-    echo json_encode(['success' => false, 'error' => 'Este producto ya lo tiene otro']);
-    exit;
+    // Solo permitimos liberar si eres el dueño
+    $sql = "UPDATE items SET estado = 'LIBRE', id_usuario_asignado = NULL WHERE id = ? AND id_usuario_asignado = ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("ii", $item_id, $usuario_id);
 }
 
-// 3. Ejecutamos el cambio
-if ($conn->query($sql_update)) {
-    echo json_encode(['success' => true]);
+if ($stmt->execute()) {
+    if ($stmt->affected_rows > 0) {
+        echo json_encode(['success' => true]);
+    } else {
+        echo json_encode(['success' => false, 'error' => 'No se pudo modificar (quizás ya lo tomó otro)']);
+    }
 } else {
-    echo json_encode(['success' => false, 'error' => 'Error SQL']);
+    echo json_encode(['success' => false, 'error' => 'Error SQL: ' . $stmt->error]);
 }
 
+$stmt->close();
 $conn->close();
 ?>

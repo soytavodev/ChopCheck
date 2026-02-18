@@ -251,7 +251,7 @@
     <div id="screen-login" class="screen">
         <div style="text-align: center; width: 100%;">
             <img src="chopcheck.png" alt="ChopCheck Logo" class="login-logo-img">
-            <h1>CHOP CHECK</h1>
+            <h1>CHOPCHECK</h1>
             <h2 class="slogan">🔪️ Divide, paga, vete 🧾️</h2>
         </div>
         
@@ -322,9 +322,11 @@
             const res = await fetch('api/join_session.php', { method: 'POST', body: JSON.stringify({ alias }) });
             const data = await res.json();
             if (data.success) {
-                localStorage.setItem('chopcheck_uid', data.user_id);
+                // MODIFICACIÓN: PHP ahora devuelve 'usuario_id'
+                const uid = data.usuario_id || data.user_id;
+                localStorage.setItem('chopcheck_uid', uid);
                 localStorage.setItem('chopcheck_alias', alias);
-                MI_ID = data.user_id; MI_ALIAS = alias;
+                MI_ID = uid; MI_ALIAS = alias;
                 location.reload();
             } else alert(data.error);
         } catch (e) { alert("Error conexión"); }
@@ -368,14 +370,14 @@
             let clase = 'libre';
             const esMio = (item.estado === 'ASIGNADO' && String(item.id_usuario_asignado) === String(MI_ID));
             const esLibre = (item.estado === 'LIBRE');
-            const grupoSplit = item.grupo_split || null;
+            const grupoSplit = item.grupo_split || ''; // MODIFICADO: Aseguramos string
             const esDividido = (grupoSplit !== null && grupoSplit !== "");
 
             if (item.estado === 'ASIGNADO') clase = esMio ? 'asignado-mio' : 'asignado-otro';
             div.className = `item-card ${clase}`;
 
             let html = `
-                <div style="flex-grow:1; padding-right:10px;" onclick="toggleItem(${item.id}, '${item.estado}', ${item.id_usuario_asignado})">
+                <div style="flex-grow:1; padding-right:10px;" onclick="toggleItem(${item.id}, '${item.estado}', '${item.id_usuario_asignado || ''}')">
                     <span style="font-family:'Courier New'; font-weight:600; font-size: 1.05em;">${item.nombre_producto}</span>
                 </div>
             `;
@@ -383,10 +385,13 @@
             if (esLibre) {
                 html += `<div class="acciones-wrapper">`;
                 if (esDividido) {
-                    html += `<div class="btn-action btn-undo" onclick="deshacerDivision(${item.id})">↩️</div>`;
+                    // MODIFICADO: Pasamos el ID del grupo (String)
+                    html += `<div class="btn-action btn-undo" onclick="deshacerDivision('${grupoSplit}')">↩️</div>`;
                 } else {
-                    html += `<div class="btn-action" onclick="abrirDivision(${item.id}, '${item.nombre_producto}')">✂️</div>`;
-                    html += `<div class="btn-action btn-trash" onclick="eliminarItem(${item.id}, '${item.nombre_producto}')">🗑️</div>`;
+                    // MODIFICADO: Escapar comillas para evitar errores
+                    const safeName = item.nombre_producto.replace(/'/g, "\\'");
+                    html += `<div class="btn-action" onclick="abrirDivision(${item.id}, '${safeName}')">✂️</div>`;
+                    html += `<div class="btn-action btn-trash" onclick="eliminarItem(${item.id}, '${safeName}')">🗑️</div>`;
                 }
                 html += `</div>`;
             }
@@ -401,11 +406,14 @@
         if (!MI_ID) { alert("Sesión expirada."); location.reload(); return; }
         if (estado === 'ASIGNADO' && String(ownerId) !== String(MI_ID)) { console.log("Item de otro"); return; }
 
+        // MODIFICADO: Enviamos 'accion' que es lo que espera el PHP nuevo
+        let accion = (estado === 'LIBRE') ? 'asignar' : 'liberar';
+
         try {
             const respuesta = await fetch('api/toggle_item.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ item_id: itemId, user_id: MI_ID })
+                body: JSON.stringify({ item_id: itemId, usuario_id: MI_ID, accion: accion })
             });
             const data = await respuesta.json();
             if (data.success) { cargarCuenta(); } 
@@ -445,10 +453,14 @@
         } catch (e) { alert("Error al dividir"); }
     }
 
-    async function deshacerDivision(itemId) {
+    // MODIFICADO: Recibe grupoId (string) y lo manda como 'grupo_id'
+    async function deshacerDivision(grupoId) {
         if(!confirm("¿Reunir las partes y volver al original?")) return;
         try {
-            const res = await fetch('api/undo_split.php', { method: 'POST', body: JSON.stringify({ item_id: itemId }) });
+            const res = await fetch('api/undo_split.php', { 
+                method: 'POST', 
+                body: JSON.stringify({ grupo_id: grupoId }) 
+            });
             const data = await res.json();
             if (data.success) { cargarCuenta(); } else { alert(data.error); }
         } catch (e) { alert("Error al unir"); }
@@ -527,7 +539,7 @@
             const res = await fetch('api/pay_items.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_id: MI_ID, pin: pin }) 
+                body: JSON.stringify({ usuario_id: MI_ID, pin: pin }) 
             });
             const data = await res.json();
             
