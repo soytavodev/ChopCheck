@@ -1,104 +1,68 @@
 -- ==============================================================================
--- PROYECTO: ChopCheck
+-- PROYECTO: ChopCheck Pro 🔪🏴‍☠️
 -- ARCHIVO: database/schema.sql
--- DESCRIPCIÓN: Script de inicialización de BBDD.
---              Incluye estructura de tablas y datos de prueba (Mock Data).
+-- DESCRIPCIÓN: Estructura unificada para gestión de comandas y pagos.
 -- ==============================================================================
 
--- 1. LIMPIEZA DE ENTORNO
--- Borramos la base de datos si ya existe para evitar conflictos en reinicios.
-DROP DATABASE IF EXISTS chopcheck_db;
+-- 1. LIMPIEZA DE CUBIERTA (Borrar tablas previas para evitar conflictos)
+SET FOREIGN_KEY_CHECKS = 0;
+DROP TABLE IF EXISTS pagos;
+DROP TABLE IF EXISTS items;
+DROP TABLE IF EXISTS usuarios;
+DROP TABLE IF EXISTS carta;
+DROP TABLE IF EXISTS sesiones;
+SET FOREIGN_KEY_CHECKS = 1;
 
--- 2. CREACIÓN DE LA BASE DE DATOS
--- Usamos utf8mb4 para soportar emojis y caracteres especiales completos.
-CREATE DATABASE chopcheck_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
--- Seleccionamos la base de datos para ejecutar las siguientes sentencias.
-USE chopcheck_db;
-
--- ==============================================================================
--- 3. DEFINICIÓN DE TABLAS (DDL)
--- ==============================================================================
-
--- TABLA: sesiones
--- Representa una "Mesa" física en el restaurante.
+-- 2. LAS MESAS (Sesiones)
+-- Cada mesa es una "partida" diferente en la taberna.
 CREATE TABLE sesiones (
-    id INT AUTO_INCREMENT PRIMARY KEY,          -- Identificador único interno
-    codigo_acceso VARCHAR(20) NOT NULL UNIQUE,  -- Código alfanumérico para el QR
-    estado ENUM('ABIERTA', 'CERRADA') DEFAULT 'ABIERTA', -- Control de flujo
-    fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP -- Auditoría de creación
-);
-
--- TABLA: usuarios_temp
--- Usuarios volátiles. No requiere registro (email/pass), solo un alias.
-CREATE TABLE usuarios_temp (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    sesion_id INT NOT NULL,                     -- Relación con la mesa
-    alias VARCHAR(50) NOT NULL,                 -- Nombre visible (ej: "Juan")
-    token_recuperacion VARCHAR(100) NOT NULL,   -- Token para cookie (persistencia de sesión)
-    fecha_ingreso DATETIME DEFAULT CURRENT_TIMESTAMP,
-    
-    -- INTEGRIDAD REFERENCIAL:
-    -- Si se borra la mesa (sesion), se borran sus usuarios (CASCADE).
-    FOREIGN KEY (sesion_id) REFERENCES sesiones(id) ON DELETE CASCADE
-);
+    codigo_mesa VARCHAR(20) NOT NULL UNIQUE, -- Ej: 'MESA-01'
+    estado ENUM('ABIERTA', 'CERRADA') DEFAULT 'ABIERTA',
+    pin_pago_mesa VARCHAR(4) DEFAULT NULL,    -- El PIN ahora vive aquí, no en un .txt
+    fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- TABLA: items
--- Representa cada producto consumido.
--- IMPORTANTE: Usamos "Atomización". No hay campo 'cantidad'.
--- Si piden 2 cervezas, se insertan 2 filas. Esto facilita dividir cuentas.
+-- 3. LA TRIPULACIÓN (Usuarios)
+-- Usuarios volátiles que se unen a una mesa.
+CREATE TABLE usuarios (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    sesion_id INT NOT NULL,
+    alias VARCHAR(50) NOT NULL,
+    token_recuperacion VARCHAR(100) NOT NULL, -- Para que no pierdan su cuenta al refrescar
+    fecha_ingreso DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (sesion_id) REFERENCES sesiones(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 4. EL BOTÍN (La Carta / Menú)
+CREATE TABLE carta (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    categoria VARCHAR(50) NOT NULL,
+    nombre VARCHAR(100) NOT NULL,
+    precio DECIMAL(10,2) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 5. EL REGISTRO DE SAQUEO (Items / Comandas)
+-- Aquí es donde ocurre la magia de "quién paga qué".
 CREATE TABLE items (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    sesion_id INT NOT NULL,                     -- Relación con la mesa
+    sesion_id INT NOT NULL,
     nombre_producto VARCHAR(100) NOT NULL,
-    precio DECIMAL(10,2) NOT NULL,              -- Formato monetario estándar
-    
-    id_usuario_asignado INT DEFAULT NULL,       -- Quién paga esto (NULL = nadie)
+    precio DECIMAL(10,2) NOT NULL,
+    id_usuario_asignado INT DEFAULT NULL,    -- Quién reclama el botín
     estado ENUM('LIBRE', 'ASIGNADO', 'PAGADO') DEFAULT 'LIBRE',
-    
-    -- INTEGRIDAD REFERENCIAL:
-    -- Si se borra la mesa, adiós a los items.
+    grupo_split VARCHAR(50) DEFAULT NULL,     -- Para platos compartidos
+    fecha_pedido DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (sesion_id) REFERENCES sesiones(id) ON DELETE CASCADE,
-    
-    -- Si un usuario se va (borrado), el ítem vuelve a quedar libre (SET NULL)
-    -- en lugar de borrarse el producto.
-    FOREIGN KEY (id_usuario_asignado) REFERENCES usuarios_temp(id) ON DELETE SET NULL
-);
+    FOREIGN KEY (id_usuario_asignado) REFERENCES usuarios(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- ==============================================================================
--- 4. CARGA DE DATOS DE PRUEBA (DML)
--- ==============================================================================
+-- 6. CARGA INICIAL DE LA DESPENSA (Datos de prueba)
+INSERT INTO sesiones (codigo_mesa) VALUES ('MESA-01'), ('MESA-02');
 
--- Creamos una Mesa de prueba
-INSERT INTO sesiones (codigo_acceso) VALUES ('MESA-TEST-1');
-
--- Insertamos usuarios ficticios
-INSERT INTO usuarios_temp (sesion_id, alias, token_recuperacion) VALUES 
-(1, 'Gustavo', 'tok_gus_123'), -- Usuario 1
-(1, 'Ana', 'tok_ana_456');     -- Usuario 2
-
--- Insertamos productos (Comanda de ejemplo)
--- Observar la atomización: Las cervezas van por separado.
-INSERT INTO items (sesion_id, nombre_producto, precio) VALUES 
-(1, 'Cerveza Turia', 3.50),     -- Item 1
-(1, 'Cerveza Turia', 3.50),     -- Item 2
-(1, 'Patatas Bravas', 6.00),    -- Item 3
-(1, 'Pizza Margarita', 12.00);  -- Item 4
-
--- Simulamos una interacción: Gustavo reclama la primera cerveza.
--- Actualizamos el estado a 'ASIGNADO' y vinculamos al ID 1 (Gustavo).
-UPDATE items 
-SET id_usuario_asignado = 1, estado = 'ASIGNADO' 
-WHERE id = 1;
-
--- =================================================================================
-
--- 1. Crear usuario nuevo
-CREATE USER 'admin'@'localhost' IDENTIFIED BY 'Hakaishin2.';
-
--- 2. Darle permiso TOTAL sobre la base de datos chopcheck
-GRANT ALL PRIVILEGES ON chopcheck_db.* TO 'admin'@'localhost';
-
--- 3. Guardar cambios
-FLUSH PRIVILEGES;
-EXIT;
+INSERT INTO carta (categoria, nombre, precio) VALUES 
+('Montaditos', 'Clásico (Jamón/Tomate)', 2.50),
+('Tapas', 'Patatas Bravas', 6.00),
+('Tapas', 'Ensaladilla Rusa', 5.50),
+('Bebidas', 'Cerveza Turia', 2.80),
+('Bebidas', 'Ron del Capitán', 4.50);
