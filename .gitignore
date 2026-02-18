@@ -1,0 +1,17 @@
+# === ARCHIVOS DE SISTEMA ===
+.DS_Store
+Thumbs.db
+*.log
+
+# === SEGURIDAD: CONFIGURACIÓN SENSIBLE ===
+# Jamás subas tus credenciales reales a GitHub
+config/db_connect.php
+
+# === IDEs Y HERRAMIENTAS ===
+.vscode/
+.idea/
+*.swp
+
+# === TEMPORALES DEL PROYECTO ===
+# Si usas el sistema de PINs con archivos temporales (aunque los quitaremos)
+config/pin_mesa_*.txt
