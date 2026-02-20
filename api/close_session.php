@@ -1,31 +1,56 @@
 <?php
+// ==============================================================================
+// PROYECTO: ChopCheck Pro
+// ARCHIVO: api/close_session.php
+// DESCRIPCIÓN: Cierra una mesa: borra items y la deja en estado ABIERTA y sin PIN.
+// Entrada: JSON { mesa_id }
+// ==============================================================================
+
 header('Content-Type: application/json');
-require_once '../config/db_connect.php';
 
-$input = json_decode(file_get_contents('php://input'), true);
-$mesa_id = $input['mesa_id'] ?? null;
+require_once __DIR__ . '/../config/db_connect.php';
 
-if (!$mesa_id) {
-    echo json_encode(['success' => false, 'error' => 'ID de mesa no proporcionado']);
+$raw = file_get_contents('php://input');
+$data = json_decode($raw, true);
+
+$mesaId = isset($data['mesa_id']) ? (int)$data['mesa_id'] : 0;
+
+if ($mesaId <= 0) {
+    echo json_encode([
+        'success' => false,
+        'error'   => 'ID de mesa no proporcionado.'
+    ]);
+    $conn->close();
     exit;
 }
 
 $conn->begin_transaction();
-try {
-    // 1. Borramos todos los items de esa sesión
-    $stmt1 = $conn->prepare("DELETE FROM items WHERE sesion_id = ?");
-    $stmt1->bind_param("i", $mesa_id);
-    $stmt1->execute();
 
-    // 2. Reseteamos la mesa a 'ABIERTA'
-    $stmt2 = $conn->prepare("UPDATE sesiones SET estado = 'ABIERTA' WHERE id = ?");
-    $stmt2->bind_param("i", $mesa_id);
-    $stmt2->execute();
+try {
+    // Borrar todos los items de esa sesión
+    $stmtDel = $conn->prepare("DELETE FROM items WHERE sesion_id = ?");
+    $stmtDel->bind_param('i', $mesaId);
+    $stmtDel->execute();
+    $stmtDel->close();
+
+    // Resetear estado de la mesa y limpiar PIN
+    $stmtUpd = $conn->prepare(
+        "UPDATE sesiones 
+         SET estado = 'ABIERTA', pin_pago_mesa = NULL
+         WHERE id = ?"
+    );
+    $stmtUpd->bind_param('i', $mesaId);
+    $stmtUpd->execute();
+    $stmtUpd->close();
 
     $conn->commit();
     echo json_encode(['success' => true]);
 } catch (Exception $e) {
     $conn->rollback();
-    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    echo json_encode([
+        'success' => false,
+        'error'   => 'Error al cerrar la mesa.'
+    ]);
 }
+
 $conn->close();

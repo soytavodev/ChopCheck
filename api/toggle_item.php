@@ -1,54 +1,109 @@
 <?php
+// ==============================================================================
+// PROYECTO: ChopCheck Pro
 // ARCHIVO: api/toggle_item.php
-// DESCRIPCIÓN: Asigna o libera un producto para un usuario.
+// DESCRIPCIÓN: Reclamar o liberar un item por parte de un usuario.
+// Entrada: JSON { item_id, usuario_id }
+// Salida: { success: true } o { success: false, error: '...' }
+// ==============================================================================
 
 header('Content-Type: application/json');
-require_once '../config/db_connect.php';
 
-$input = json_decode(file_get_contents('php://input'), true);
+require_once __DIR__ . '/../config/db_connect.php';
 
-$item_id = $input['item_id'] ?? null;
-$usuario_id = $input['usuario_id'] ?? null;
+// Importante: que nada distinto a JSON se imprima (no warnings en crudo)
+error_reporting(E_ALL);
+ini_set('display_errors', 0); // Los errores van al log, no a la salida
 
-if (!$item_id || !$usuario_id) {
-    echo json_encode(['success' => false, 'error' => 'Datos insuficientes.']);
+$raw = file_get_contents('php://input');
+$data = json_decode($raw, true);
+
+$itemId    = isset($data['item_id']) ? (int)$data['item_id'] : 0;
+$usuarioId = isset($data['usuario_id']) ? (int)$data['usuario_id'] : 0;
+
+if ($itemId <= 0 || $usuarioId <= 0) {
+    echo json_encode([
+        'success' => false,
+        'error'   => 'Datos insuficientes (item o usuario no válidos).'
+    ]);
+    $conn->close();
     exit;
 }
 
-// 1. Consultamos el estado actual del ítem
+// 1. Consultar estado actual del item
 $stmt = $conn->prepare("SELECT estado, id_usuario_asignado FROM items WHERE id = ?");
-$stmt->bind_param("i", $item_id);
+if (!$stmt) {
+    echo json_encode([
+        'success' => false,
+        'error'   => 'Error al preparar la consulta: ' . $conn->error
+    ]);
+    $conn->close();
+    exit;
+}
+
+$stmt->bind_param('i', $itemId);
 $stmt->execute();
 $res = $stmt->get_result();
 $item = $res->fetch_assoc();
+$stmt->close();
 
 if (!$item) {
-    echo json_encode(['success' => false, 'error' => 'El producto no existe.']);
+    echo json_encode([
+        'success' => false,
+        'error'   => 'El producto no existe.'
+    ]);
+    $conn->close();
     exit;
 }
 
-// 2. Lógica de cambio de estado
+// 2. Decidir qué hacer según estado actual
 if ($item['estado'] === 'LIBRE') {
-    // Si está libre, lo reclamamos para nosotros
+    // Reclamar para el usuario
     $sql = "UPDATE items SET estado = 'ASIGNADO', id_usuario_asignado = ? WHERE id = ?";
-    $stmt_upd = $conn->prepare($sql);
-    $stmt_upd->bind_param("ii", $usuario_id, $item_id);
-} elseif ($item['id_usuario_asignado'] == $usuario_id) {
-    // Si ya es nuestro, lo liberamos
+    $stmtUpd = $conn->prepare($sql);
+    if (!$stmtUpd) {
+        echo json_encode([
+            'success' => false,
+            'error'   => 'Error preparando actualización: ' . $conn->error
+        ]);
+        $conn->close();
+        exit;
+    }
+    $stmtUpd->bind_param('ii', $usuarioId, $itemId);
+
+} elseif ($item['id_usuario_asignado'] == $usuarioId) {
+    // El item ya es suyo → lo libera
     $sql = "UPDATE items SET estado = 'LIBRE', id_usuario_asignado = NULL WHERE id = ?";
-    $stmt_upd = $conn->prepare($sql);
-    $stmt_upd->bind_param("i", $item_id);
+    $stmtUpd = $conn->prepare($sql);
+    if (!$stmtUpd) {
+        echo json_encode([
+            'success' => false,
+            'error'   => 'Error preparando liberación: ' . $conn->error
+        ]);
+        $conn->close();
+        exit;
+    }
+    $stmtUpd->bind_param('i', $itemId);
+
 } else {
-    // Si es de otro usuario, no hacemos nada
-    echo json_encode(['success' => false, 'error' => 'Este producto ya ha sido reclamado por otro cliente.']);
+    // Lo tiene otro usuario, no se puede tocar
+    echo json_encode([
+        'success' => false,
+        'error'   => 'Este producto ya ha sido reclamado por otro cliente.'
+    ]);
+    $conn->close();
     exit;
 }
 
-if ($stmt_upd->execute()) {
+// 3. Ejecutar actualización
+if ($stmtUpd->execute()) {
     echo json_encode(['success' => true]);
 } else {
-    echo json_encode(['success' => false, 'error' => 'Error al actualizar el registro.']);
+    echo json_encode([
+        'success' => false,
+        'error'   => 'Error al actualizar el producto: ' . $stmtUpd->error
+    ]);
 }
 
-$stmt->close();
+$stmtUpd->close();
 $conn->close();

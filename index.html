@@ -2,60 +2,107 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ChopCheck | Divide, paga y vete</title>
+    <title>ChopCheck - Cliente</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Hoja de estilos principal (la afinaremos después) -->
     <link rel="stylesheet" href="css/style.css">
-    <link rel="icon" type="image/png" href="assets/chopcheck.png">
 </head>
 <body>
-
-    <div id="modal-split" class="modal-overlay" style="display:none;">
-        <div class="modal-box">
-            <h3>Repartir Plato</h3>
-            <p id="split-item-name" style="font-style:italic;"></p>
-            <p>¿Entre cuántos?</p>
-            <input type="number" id="split-parts" value="2" min="2" max="10" class="input-field" style="width: 60px;">
-            <div style="display:flex; gap:10px; margin-top:20px;">
-                <button class="btn-action" onclick="confirmarDivision()">Dividir</button>
-                <button class="btn-secondary" onclick="cerrarModal()">Cancelar</button>
-            </div>
-        </div>
-    </div>
-
     <div class="main-container">
-        <div class="content-sheet" id="login-screen">
-            <img src="assets/chopcheck.png" alt="ChopCheck" style="max-width: 150px; margin-bottom: 10px;">
-            <h1>ChopCheck</h1>
-            <p class="slogan">Divide, paga y vete</p>
-            <input type="text" id="alias" class="input-field" placeholder="Tu nombre..." autocomplete="off">
+        <!-- Pantalla de LOGIN -->
+        <div id="login-screen" class="content-sheet">
+            <div style="text-align:center; margin-bottom: 20px;">
+                <h1>ChopCheck</h1>
+                <p>Divide, paga y vete.</p>
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <label for="alias" style="display:block; margin-bottom:5px;">Tu nombre o apodo</label>
+                <input type="text" id="alias" placeholder="Ej: Gustavo" style="width:100%; padding:10px;">
+            </div>
+
+            <p style="font-size: 0.9rem; margin-bottom: 15px;">
+                Escanea el QR de la mesa (o introduce el código cuando se te pida),
+                escribe tu apodo y entra para ver la cuenta y marcar lo que has consumido.
+            </p>
+
             <button class="btn-action" onclick="accederAMesa()">Entrar</button>
         </div>
 
-        <div class="content-sheet" id="app-screen" style="display: none;">
-            <div class="header-app">
-                <h2 id="user-welcome">Hola, ...</h2>
-                <button class="btn-logout" onclick="cerrarSesion()">Salir</button>
-            </div>
-
-            <div class="account-summary">
-                <div class="summary-box">
-                    <span>Mesa</span>
-                    <strong id="total-mesa">0.00€</strong>
+        <!-- Pantalla PRINCIPAL de la app (se muestra tras login) -->
+        <div id="app-screen" class="content-sheet" style="display:none; flex-direction:column;">
+            <!-- Cabecera: título y bienvenida -->
+            <header style="margin-bottom: 10px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                    <h2>ChopCheck</h2>
+                    <button class="btn-action" style="max-width: 120px; padding:8px; font-size:0.8rem;" onclick="cerrarSesion()">
+                        Salir
+                    </button>
                 </div>
-                <div class="summary-box primary">
-                    <span>Tuyo</span>
-                    <strong id="total-mio">0.00€</strong>
+                <p id="user-welcome" style="margin-bottom:5px;">Hola, ...</p>
+                <div class="mesa-header" style="display:flex; justify-content:space-between; align-items:center;">
+                    <span id="mesa-codigo">Mesa -</span>
+                    <span><strong>Mesa:</strong> <span id="total-mesa">0.00€</span></span>
                 </div>
-            </div>
+            </header>
 
-            <hr style="width: 100%; border: 1px dashed var(--color-madera-media); margin: 15px 0;">
-            
-            <div id="items-list" style="width: 100%; flex-grow: 1; overflow-y: auto;"></div>
+            <!-- Lista de productos de la mesa -->
+            <section style="flex:1; overflow-y:auto; margin:10px 0;">
+                <h3 style="margin-bottom:8px;">Productos en la mesa</h3>
+                <div id="items-list">
+                    <!-- Aquí se pintan los items vía JS -->
+                </div>
+            </section>
 
-            <button class="btn-pay" onclick="prepararPago()">Pagar mi parte</button>
+            <!-- Resumen y acciones de pago -->
+            <section style="margin-top:10px;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                    <span><strong>Lo tuyo:</strong></span>
+                    <span id="total-mio">0.00€</span>
+                </div>
+
+                <button class="btn-pay" onclick="prepararPago()" style="margin-bottom:10px;">
+                    Pagar en caja
+                </button>
+
+                <div style="margin-bottom:5px;">
+                    <label for="pin-pago" style="display:block; margin-bottom:5px; font-size:0.85rem;">
+                        PIN de pago (te lo dirá el cajero)
+                    </label>
+                    <input type="text" id="pin-pago" maxlength="4" placeholder="Ej: 0427"
+                           style="width:100%; padding:10px; text-align:center;">
+                </div>
+
+                <button class="btn-action" onclick="confirmarPagoConPin()">
+                    Confirmar pago con PIN
+                </button>
+            </section>
         </div>
     </div>
 
+    <!-- Modal para dividir platos -->
+    <div id="modal-split" class="modal-overlay" style="display:none;">
+        <div class="modal-box">
+            <h3 style="margin-bottom:10px;">Repartir plato</h3>
+            <p style="margin-bottom:10px;">
+                ¿Entre cuántos quieres repartir
+                <strong><span id="split-item-name"></span></strong>?
+            </p>
+            <input type="number" id="split-parts" min="2" value="2"
+                   style="width:100%; padding:10px; margin-bottom:10px; text-align:center;">
+
+            <div style="display:flex; gap:10px; justify-content:space-between;">
+                <button class="btn-action" onclick="confirmarDivision()" style="flex:1;">
+                    Dividir
+                </button>
+                <button class="btn-action" onclick="cerrarModal()" style="flex:1; background:#888;">
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lógica cliente -->
     <script src="js/main.js"></script>
 </body>
 </html>
