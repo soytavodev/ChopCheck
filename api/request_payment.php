@@ -1,20 +1,56 @@
 <?php
+// ==============================================================================
+// PROYECTO: ChopCheck Pro
 // ARCHIVO: api/request_payment.php
+// DESCRIPCIÓN: El cliente avisa que quiere pagar en caja.
+// Entrada: JSON { mesa_id }
+// Acción: Pone la mesa en estado 'PAGANDO' y genera un PIN de 4 dígitos.
+// Salida: { success: true } o error.
+// ==============================================================================
+
 header('Content-Type: application/json');
-require_once '../config/db_connect.php';
 
-$input = json_decode(file_get_contents('php://input'), true);
-// Usamos el ID de la mesa que envía el JS
-$mesa_id = isset($input['mesa_id']) ? intval($input['mesa_id']) : 1;
+require_once __DIR__ . '/../config/db_connect.php';
 
-// Actualizamos el estado de la mesa a 'PAGANDO'
-$stmt = $conn->prepare("UPDATE sesiones SET estado = 'PAGANDO' WHERE id = ?");
-$stmt->bind_param("i", $mesa_id);
+$raw = file_get_contents('php://input');
+$data = json_decode($raw, true);
+
+$mesaId = isset($data['mesa_id']) ? (int)$data['mesa_id'] : 0;
+
+if ($mesaId <= 0) {
+    echo json_encode([
+        'success' => false,
+        'error'   => 'ID de mesa no proporcionado o inválido.'
+    ]);
+    $conn->close();
+    exit;
+}
+
+// Generar PIN de 4 dígitos (ej: 0427)
+$pin = str_pad(random_int(0, 9999), 4, '0', STR_PAD_LEFT);
+
+$stmt = $conn->prepare(
+    "UPDATE sesiones 
+     SET estado = 'PAGANDO', pin_pago_mesa = ? 
+     WHERE id = ? AND estado <> 'CERRADA'"
+);
+$stmt->bind_param('si', $pin, $mesaId);
 
 if ($stmt->execute()) {
-    echo json_encode(['success' => true]);
+    if ($stmt->affected_rows > 0) {
+        echo json_encode(['success' => true]);
+    } else {
+        echo json_encode([
+            'success' => false,
+            'error'   => 'No se pudo actualizar la mesa (¿quizás ya está cerrada?).'
+        ]);
+    }
 } else {
-    // Si falla, enviamos el error real para verlo en la consola
-    echo json_encode(['success' => false, 'error' => $conn->error]);
+    echo json_encode([
+        'success' => false,
+        'error'   => 'Error al marcar la mesa como PAGANDO.'
+    ]);
 }
+
+$stmt->close();
 $conn->close();
