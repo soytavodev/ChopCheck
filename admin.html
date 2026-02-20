@@ -3,376 +3,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ChopCheck | Gestión</title>
-    <link rel="icon" type="image/png" href="chopcheck.png">
-    
+    <title>ChopCheck Admin | Gestión de Sala</title>
+    <link rel="stylesheet" href="css/style.css">
     <style>
-        /* === ESTILOS BASE (TABERNA) === */
-        :root {
-            --madera-oscura: #3E2723; --madera-media: #5D4037; --madera-clara: #8D6E63;
-            --fondo-papel: #F5F5DC; --texto-tinta: #2c1e1a;
-            --verde-exito: #33691E; --rojo-alerta: #c62828; --dorado-texto: #FFECB3;
-        }
-        body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            background-color: #4E342E;
-            background-image: repeating-linear-gradient(90deg, #4E342E 0px, #4E342E 40px, #3E2723 41px, #3E2723 80px);
-            color: var(--texto-tinta); margin: 0; height: 100vh; overflow: hidden; user-select: none;
-        }
-
-        /* === PANTALLAS (SPA) === */
-        .screen { display: none; width: 100%; height: 100%; }
-        .active { display: flex; }
-
-        /* === PANTALLA 1: MAPA DE MESAS === */
-        #screen-mapa {
-            flex-direction: column; align-items: center; justify-content: flex-start;
-            padding: 20px; box-sizing: border-box; overflow-y: auto;
-        }
-
-        .mapa-header {
-            text-align: center; margin-bottom: 30px;
-            background: var(--fondo-papel); padding: 20px; border-radius: 4px;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.5); border: 2px solid var(--madera-oscura);
-            width: 100%; max-width: 800px;
-        }
-
-        .grid-mesas {
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px; width: 100%; max-width: 900px;
-        }
-
-        .card-mesa {
-            background: #fff; border: 4px solid var(--madera-media);
-            border-radius: 8px; padding: 20px; text-align: center;
-            cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
-            position: relative; overflow: hidden;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-        }
-        .card-mesa:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0,0,0,0.4); }
+        .admin-grid { display: grid; grid-template-columns: 280px 1fr 320px; gap: 15px; width: 98%; height: 95vh; margin: auto; padding-top: 10px; }
+        .section-box { height: 100%; display: flex; flex-direction: column; overflow: hidden; }
+        .scroll-area { flex-grow: 1; overflow-y: auto; padding: 10px; background: rgba(255,255,255,0.15); border-radius: 5px; }
         
-        .mesa-numero { font-family: 'Courier New', monospace; font-size: 2rem; font-weight: 900; color: var(--madera-oscura); display: block; }
-        .mesa-estado { font-weight: bold; margin-top: 10px; display: block; font-size: 0.9rem; }
-        .mesa-total { font-family: 'Courier New', monospace; font-size: 1.5rem; font-weight: bold; margin-top: 5px; display: block; }
-
-        .estado-libre { background-color: #E8F5E9; border-color: #66BB6A; }
-        .estado-libre .mesa-estado { color: #2E7D32; }
-        .estado-ocupada { background-color: #FFEBEE; border-color: #EF5350; }
-        .estado-ocupada .mesa-estado { color: #C62828; }
-
-        /* === PANTALLA 2: DETALLE MESA (ANTIGUO ADMIN) === */
-        #screen-detalle { display: none; height: 100vh; width: 100vw; }
+        /* Botones de Mesas más compactos para que quepan las 16 */
+        .mesa-card { 
+            background: var(--color-papiro); padding: 10px; margin-bottom: 8px; 
+            border: 2px solid var(--color-madera-media); cursor: pointer; text-align: center;
+            font-size: 0.9rem; transition: 0.2s;
+        }
+        .mesa-card:hover { transform: translateX(5px); }
+        .mesa-card.active { background: var(--color-acento); border-color: var(--color-madera-oscura); color: white; }
         
-        .carta-panel { width: 60%; padding: 20px; overflow-y: auto; background: var(--fondo-papel); position: relative; }
-        .ticket-panel { width: 40%; background: #fff; border-left: 10px solid var(--madera-oscura); display: flex; flex-direction: column; }
+        .carta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .btn-item { padding: 12px 5px; background: white; border: 1px solid #ccc; cursor: pointer; font-size: 0.8rem; }
 
-        .top-bar-nav {
+        /* FIX: Evitar solapamiento en admin */
+        .linea-comanda { 
             display: flex; justify-content: space-between; align-items: center;
-            background: var(--madera-oscura); color: #FFF; padding: 10px 20px;
+            border-bottom: 1px solid rgba(0,0,0,0.1); padding: 8px 0; gap: 10px;
         }
-        .btn-volver {
-            background: transparent; border: 1px solid #FFF; color: #FFF;
-            padding: 5px 15px; cursor: pointer; font-weight: bold; border-radius: 4px;
-        }
-        .btn-volver:hover { background: rgba(255,255,255,0.2); }
-
-        /* Estilos Carta */
-        .grid-productos { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; margin-top: 15px; }
-        .btn-producto { background: #FFF; border: 2px solid var(--madera-clara); padding: 15px 5px; border-radius: 4px; cursor: pointer; text-align: center; }
-        .btn-producto:hover { border-color: var(--madera-oscura); background: #EFEBE9; }
-        .prod-nombre { display: block; font-weight: bold; font-size: 0.9rem; margin-bottom: 5px; }
-        .prod-precio { font-family: 'Courier New', monospace; color: var(--verde-exito); font-weight: bold; }
-        .categoria-title { font-family: 'Georgia', serif; font-size: 1.2rem; font-weight: bold; color: var(--madera-oscura); margin-top: 20px; border-bottom: 1px dashed var(--madera-clara); }
-
-        /* Estilos Ticket */
-        .ticket-header { background: var(--madera-oscura); color: var(--dorado-texto); padding: 10px; text-align: center; font-weight: bold; }
-        .seccion-ticket { padding: 10px; border-bottom: 2px solid #EEE; flex-grow: 1; overflow-y: auto; }
-        .titulo-seccion { font-size: 0.8rem; text-transform: uppercase; color: #888; margin-bottom: 5px; font-weight: bold; }
-        
-        .item-servido { display: flex; justify-content: space-between; color: #555; font-size: 0.9rem; padding: 3px 0; }
-        .item-nuevo { display: flex; justify-content: space-between; color: #000; font-weight: bold; font-size: 1rem; padding: 5px 0; border-bottom: 1px dashed #ddd; }
-        
-        .acciones-finales { padding: 15px; background: #eee; border-top: 2px solid var(--madera-oscura); }
-        .btn-enviar { width: 100%; padding: 15px; background: var(--madera-oscura); color: var(--dorado-texto); font-weight: bold; border: none; cursor: pointer; font-size: 1.1rem; }
-        .btn-limpiar { width: 100%; padding: 10px; background: #FFEBEE; color: var(--rojo-alerta); border: 1px dashed var(--rojo-alerta); margin-top: 10px; cursor: pointer; }
-
-        /* Notificaciones Toast */
-        #notification-area { position: fixed; top: 20px; right: 20px; width: 300px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; }
-        .toast { background: white; border-left: 5px solid #FF9800; padding: 15px; border-radius: 4px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); font-family: 'Segoe UI', sans-serif; animation: slideIn 0.3s; }
-        @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
-
+        .linea-comanda span:first-child { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .badge-user { font-size: 0.7rem; color: #fff; background: #d32f2f; padding: 1px 5px; border-radius: 10px; margin-left: 5px; }
     </style>
 </head>
 <body>
 
-<div id="notification-area"></div>
-
-<div id="screen-mapa" class="active">
-    <div class="mapa-header">
-        <img src="chopcheck.png" alt="ChopCheck" style="max-width:80px; mix-blend-mode:multiply;">
-        <h1 style="margin:0; font-family:'Courier New'; color:#3E2723;">SALA PRINCIPAL</h1>
-        <p style="margin:0; font-style:italic; color:#5D4037;">Selecciona una mesa para gestionar</p>
-    </div>
-
-    <div class="grid-mesas" id="contenedor-mesas">
-        <p>Cargando sala...</p>
-    </div>
-</div>
-
-<div id="screen-detalle">
-    
-    <div class="carta-panel">
-        <div class="top-bar-nav">
-            <button class="btn-volver" onclick="volverAlMapa()">⬅ SALA</button>
-            <span style="font-weight:bold; font-family:'Courier New'; font-size:1.2rem;" id="titulo-mesa-activa">MESA ?</span>
-        </div>
-        
-        <div id="contenedor-carta">
-            </div>
-    </div>
-
-    <div class="ticket-panel">
-        <div class="ticket-header">ESTADO DE CUENTA</div>
-        
-        <div class="seccion-ticket" style="background:#FAFAFA; max-height: 40%;">
-            <div class="titulo-seccion">🕒 YA SERVIDO (EN DB)</div>
-            <div id="lista-servidos">
+    <div class="admin-grid">
+        <div class="main-container section-box">
+            <div class="content-sheet">
+                <h3 style="margin-bottom:10px;">PLANO DE SALA</h3>
+                <div id="lista-mesas" class="scroll-area">
+                    <p style="text-align:center;">Cargando mesas...</p>
                 </div>
-            <div style="text-align:right; margin-top:10px; font-weight:bold; color:#555;">
-                Total Acumulado: <span id="total-servido">0.00 €</span>
             </div>
         </div>
 
-        <div class="seccion-ticket" style="background:#FFF; flex-grow:1;">
-            <div class="titulo-seccion" style="color:#2E7D32;">📝 NUEVA COMANDA (PENDIENTE)</div>
-            <div id="lista-nuevos">
-                <p style="text-align:center; color:#ccc; font-style:italic; margin-top:20px;">Pulsa en la carta para añadir...</p>
+        <div class="main-container section-box">
+            <div class="content-sheet">
+                <h3 style="margin-bottom:10px;">CARTA</h3>
+                <div id="carta-grid" class="scroll-area carta-grid">
+                    <p>Cargando productos...</p>
+                </div>
             </div>
         </div>
 
-        <div class="acciones-finales">
-            <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:1.2rem; margin-bottom:10px;">
-                <span>TOTAL NUEVO:</span>
-                <span id="total-nuevo">0.00 €</span>
+        <div class="main-container section-box">
+            <div class="content-sheet">
+                <h3 id="titulo-mesa">SELECCIONE MESA</h3>
+                <div id="detalle-comanda" class="scroll-area">
+                    <p style="text-align:center; opacity:0.6;">Sin mesa activa</p>
+                </div>
+                <div class="account-summary" style="margin-top:10px;">
+                    <div class="summary-box primary">
+                        <span>Total Mesa</span>
+                        <strong id="total-mesa-admin">0.00€</strong>
+                    </div>
+                </div>
+                <button class="btn-pay" onclick="cobrarMesa()" style="background:#b71c1c; margin-top:10px;">Cerrar Mesa</button>
             </div>
-            <button class="btn-enviar" id="btn-enviar" onclick="enviarComanda()">🚀 MARCHAR A COCINA</button>
-            <button class="btn-limpiar" onclick="limpiarMesa()">⚠️ CERRAR MESA (Cobrar y Limpiar)</button>
         </div>
     </div>
-</div>
 
-<script>
-    let MESA_ACTIVA = null;
-    let NUEVA_COMANDA = [];
-    let CARTA_CACHE = [];
-    const PIN_MAESTRO = "8888";
-
-    async function init() {
-        // Cargar Carta una sola vez
-        try {
-            const res = await fetch('api/get_carta.php');
-            CARTA_CACHE = await res.json();
-            dibujarCarta();
-            cargarMapaMesas();
-            // Polling de mapa y alertas
-            setInterval(cargarMapaMesas, 5000); 
-            setInterval(checkAlertas, 3000);
-        } catch(e) { console.error(e); }
-    }
-
-    // === GESTIÓN DEL MAPA ===
-    async function cargarMapaMesas() {
-        // Solo recargamos si estamos en la pantalla mapa para ahorrar recursos
-        if(document.getElementById('screen-detalle').style.display === 'flex') return;
-
-        try {
-            const res = await fetch('api/get_tables_status.php');
-            const mesas = await res.json();
-            dibujarMesas(mesas);
-        } catch(e) { console.error(e); }
-    }
-
-    function dibujarMesas(mesas) {
-        const contenedor = document.getElementById('contenedor-mesas');
-        contenedor.innerHTML = '';
-
-        mesas.forEach(m => {
-            const div = document.createElement('div');
-            const claseEstado = (m.total > 0) ? 'estado-ocupada' : 'estado-libre';
-            const textoEstado = (m.total > 0) ? 'OCUPADA' : 'LIBRE';
-            
-            div.className = `card-mesa ${claseEstado}`;
-            div.onclick = () => entrarMesa(m.id);
-            div.innerHTML = `
-                <span class="mesa-numero">MESA ${m.id}</span>
-                <span class="mesa-estado">${textoEstado}</span>
-                <span class="mesa-total">${m.total.toFixed(2)} €</span>
-            `;
-            contenedor.appendChild(div);
-        });
-    }
-
-    // === GESTIÓN DE DETALLE DE MESA ===
-    async function entrarMesa(id) {
-        MESA_ACTIVA = id;
-        document.getElementById('screen-mapa').style.display = 'none'; // ocultar mapa (usamos display none manual para asegurar)
-        document.getElementById('screen-mapa').classList.remove('active');
-        
-        const detalle = document.getElementById('screen-detalle');
-        detalle.style.display = 'flex'; // forzar flex
-        
-        document.getElementById('titulo-mesa-activa').innerText = `MESA ${id}`;
-        
-        // Limpiamos comanda nueva
-        NUEVA_COMANDA = [];
-        actualizarVistaNuevos();
-        
-        // Cargamos lo que ya hay
-        cargarItemsServidos(id);
-    }
-
-    function volverAlMapa() {
-        MESA_ACTIVA = null;
-        document.getElementById('screen-detalle').style.display = 'none';
-        document.getElementById('screen-mapa').style.display = 'flex';
-        document.getElementById('screen-mapa').classList.add('active');
-        cargarMapaMesas(); // Actualizar datos al volver
-    }
-
-    async function cargarItemsServidos(mesaId) {
-        const contenedor = document.getElementById('lista-servidos');
-        contenedor.innerHTML = 'Cargando...';
-        
-        try {
-            const res = await fetch(`api/get_table_detail.php?mesa_id=${mesaId}`);
-            const items = await res.json();
-            
-            contenedor.innerHTML = '';
-            let total = 0;
-
-            if(items.length === 0) {
-                contenedor.innerHTML = '<p style="text-align:center; font-style:italic; font-size:0.8rem;">Nada servido aún.</p>';
-            }
-
-            items.forEach(item => {
-                total += parseFloat(item.precio);
-                const div = document.createElement('div');
-                div.className = 'item-servido';
-                div.innerHTML = `<span>${item.nombre_producto}</span><span>${item.precio}€</span>`;
-                contenedor.appendChild(div);
-            });
-
-            document.getElementById('total-servido').innerText = total.toFixed(2) + ' €';
-
-        } catch(e) { contenedor.innerHTML = 'Error carga'; }
-    }
-
-    // === GESTIÓN DE LA CARTA Y NUEVA COMANDA ===
-    function dibujarCarta() {
-        const contenedor = document.getElementById('contenedor-carta');
-        contenedor.innerHTML = '';
-        const categorias = {};
-        CARTA_CACHE.forEach(p => { if(!categorias[p.categoria]) categorias[p.categoria] = []; categorias[p.categoria].push(p); });
-
-        for (const [cat, items] of Object.entries(categorias)) {
-            const t = document.createElement('div'); t.className='categoria-title'; t.innerText = cat; contenedor.appendChild(t);
-            const g = document.createElement('div'); g.className='grid-productos';
-            items.forEach(prod => {
-                const b = document.createElement('div'); b.className='btn-producto';
-                b.innerHTML = `<span class="prod-nombre">${prod.nombre}</span><span class="prod-precio">${prod.precio}€</span>`;
-                b.onclick = () => agregarNuevo(prod);
-                g.appendChild(b);
-            });
-            contenedor.appendChild(g);
-        }
-    }
-
-    function agregarNuevo(prod) {
-        NUEVA_COMANDA.push(prod);
-        actualizarVistaNuevos();
-    }
-
-    function actualizarVistaNuevos() {
-        const lista = document.getElementById('lista-nuevos');
-        const totalEl = document.getElementById('total-nuevo');
-        lista.innerHTML = '';
-        let total = 0;
-
-        NUEVA_COMANDA.forEach((item, index) => {
-            total += parseFloat(item.precio);
-            const div = document.createElement('div');
-            div.className = 'item-nuevo';
-            div.innerHTML = `
-                <span>${item.nombre}</span>
-                <span>${item.precio}€ <b style="color:red; cursor:pointer;" onclick="quitarNuevo(${index})">X</b></span>
-            `;
-            lista.appendChild(div);
-        });
-
-        totalEl.innerText = total.toFixed(2) + ' €';
-        if(NUEVA_COMANDA.length === 0) lista.innerHTML = '<p style="text-align:center; color:#ccc; font-style:italic; margin-top:20px;">Pulsa en la carta para añadir...</p>';
-    }
-
-    function quitarNuevo(index) {
-        NUEVA_COMANDA.splice(index, 1);
-        actualizarVistaNuevos();
-    }
-
-    async function enviarComanda() {
-        if(NUEVA_COMANDA.length === 0) return alert("Selecciona productos primero.");
-        const btn = document.getElementById('btn-enviar');
-        btn.disabled = true; btn.innerText = "ENVIANDO...";
-
-        try {
-            const res = await fetch('api/add_order.php', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ mesa_id: MESA_ACTIVA, items: NUEVA_COMANDA })
-            });
-            const data = await res.json();
-            if(data.success) {
-                NUEVA_COMANDA = [];
-                actualizarVistaNuevos();
-                cargarItemsServidos(MESA_ACTIVA); // Recargamos lo servido para verlo bajar
-                btn.innerText = "¡OÍDO! ✅";
-                setTimeout(() => { btn.innerText = "🚀 MARCHAR A COCINA"; btn.disabled = false; }, 1000);
-            } else { alert(data.error); btn.disabled = false; }
-        } catch(e) { alert("Error"); btn.disabled = false; }
-    }
-
-    async function limpiarMesa() {
-        if(!confirm(`⚠️ ¿CERRAR MESA ${MESA_ACTIVA}?\n\nSe borrará toda la cuenta.`)) return;
-        try {
-            await fetch('api/clear_table.php', {
-                method: 'POST', body: JSON.stringify({ mesa_id: MESA_ACTIVA })
-            });
-            volverAlMapa(); // Volvemos al mapa tras limpiar
-        } catch(e) { alert("Error al limpiar"); }
-    }
-
-    // === ALERTAS (TOAST) ===
-    async function checkAlertas() {
-        try {
-            const res = await fetch('api/get_alerts.php');
-            const alertas = await res.json();
-            alertas.forEach(mostrarNotificacion);
-        } catch(e) {}
-    }
-
-    function mostrarNotificacion(data) {
-        const area = document.getElementById('notification-area');
-        const toast = document.createElement('div'); toast.className = 'toast';
-        toast.innerHTML = `
-            <div style="font-weight:bold; color:#E65100">🔔 MESA ${data.mesa_id}</div>
-            <div style="font-size:0.9rem">${data.nombre_usuario} quiere pagar ${parseFloat(data.monto).toFixed(2)}€</div>
-            <div style="background:#eee; padding:5px; text-align:right; font-family:monospace; margin-top:5px; font-weight:bold;">PIN: ${PIN_MAESTRO}</div>
-        `;
-        area.appendChild(toast);
-        setTimeout(() => toast.remove(), 10000);
-    }
-
-    window.onload = init;
-</script>
-
+    <script src="js/admin.js"></script>
 </body>
 </html>

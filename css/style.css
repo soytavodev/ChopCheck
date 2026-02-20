@@ -1,236 +1,116 @@
 /* ==============================================================================
-   PROYECTO: ChopCheck Pro
-   ARCHIVO: css/style.css
-   ESTILO: UI basada en texturas (Madera/Papiro)
+   PROYECTO: ChopCheck Pro 🔪
+   ARCHIVO: css/style.css (VERSIÓN RESTAURADA)
    ============================================================================== */
 
 :root {
-    --color-madera-oscura: #3E2723;
-    --color-madera-media: #5D4037;
-    --color-papiro: #F5E6BE;
-    --color-papiro-borde: #D2B48C;
-    --color-texto: #2c1e1a;
-    --color-acento: #FFD700;
+    --color-madera-oscura: #3e2723;
+    --color-madera-media: #5d4037;
+    --color-papiro: #f4ece1;
+    --color-acento: #d32f2f;
+    --color-libre: #ffffff;
+    --color-mio: #c8e6c9;
+    --color-otro: #ffccbc;
 }
 
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
 body {
-    background-color: #1a1a1a;
-    background-image: repeating-linear-gradient(90deg, #3E2723 0px, #3E2723 50px, #2c1e1a 51px, #2c1e1a 100px);
+    background-color: var(--color-madera-oscura);
+    background-image: url('https://www.transparenttextures.com/patterns/wood-pattern.png');
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    color: var(--color-texto);
-    margin: 0;
     display: flex;
     justify-content: center;
     align-items: center;
     height: 100vh;
+    overflow: hidden;
 }
 
-/* Contenedor tipo tablón */
 .main-container {
+    width: 95%;
+    max-width: 450px;
+    height: 90vh;
     background: var(--color-madera-media);
     padding: 15px;
-    border: 10px solid var(--color-madera-oscura);
-    box-shadow: inset 0 0 30px rgba(0,0,0,0.8), 0 20px 40px rgba(0,0,0,0.5);
-    width: 90%;
-    max-width: 400px;
-    position: relative;
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    display: flex;
+    flex-direction: column;
 }
 
-/* Efecto Papiro */
 .content-sheet {
-    background-color: var(--color-papiro);
-    padding: 30px 20px;
-    border: 2px solid var(--color-papiro-borde);
-    min-height: 350px;
+    background: var(--color-papiro);
+    flex-grow: 1;
+    padding: 20px;
+    border-radius: 5px;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    box-shadow: 2px 2px 10px rgba(0,0,0,0.2);
+    overflow: hidden;
 }
 
-h1 {
-    font-family: 'Georgia', serif;
-    margin: 0;
-    font-size: 2rem;
-    text-transform: uppercase;
-}
-
-.slogan {
-    font-family: 'Georgia', serif;
-    font-style: italic;
-    font-size: 1rem;
-    margin-bottom: 30px;
-    color: var(--color-madera-media);
-}
-
-.input-field {
-    width: 85%;
-    padding: 12px;
-    margin-bottom: 20px;
-    border: 2px solid var(--color-madera-media);
-    background: rgba(255,255,255,0.4);
-    font-size: 1rem;
-    text-align: center;
-}
-
-.btn-action {
-    background: var(--color-madera-oscura);
-    color: white;
-    padding: 15px 30px;
-    border: none;
-    font-weight: bold;
-    text-transform: uppercase;
-    cursor: pointer;
-    box-shadow: 0 4px 0 #1a1a1a;
-}
-
-.btn-action:active {
-    transform: translateY(2px);
-    box-shadow: none;
-}
-
-.item-row {
-    width: 100%;
-    margin-bottom: 10px;
-    border-bottom: 1px dotted var(--color-madera-media);
-    padding-bottom: 5px;
-}
-
+/* Estilo de los platos (Restaurado) */
 .item-info {
-    display: flex;
-    justify-content: space-between;
-    cursor: pointer;
-    padding: 5px;
-    transition: background 0.2s;
-}
-
-.status-mio {
-    background: #d4edda; /* Verde suave para lo que tú pagas */
-    font-weight: bold;
-}
-
-.status-otro {
-    opacity: 0.5;
-    text-decoration: line-through;
-    cursor: not-allowed;
-}
-
-.owner-tag {
-    font-size: 0.7rem;
-    color: #721c24;
-    display: block;
-    text-align: right;
-}
-
-.header-app {
-    display: flex;
-    justify-content: space-between;
-    width: 100%;
-    align-items: center;
-    margin-bottom: 10px;
-}
-
-.btn-logout {
-    background: transparent;
-    border: 1px solid var(--color-madera-media);
-    font-size: 0.7rem;
-    cursor: pointer;
-    padding: 2px 5px;
-}
-
-.account-summary {
-    display: flex;
-    justify-content: space-between;
-    width: 100%;
-    gap: 10px;
-    margin-bottom: 10px;
-}
-
-.summary-box {
-    flex: 1;
-    background: rgba(0,0,0,0.05);
     padding: 10px;
-    text-align: center;
+    margin-bottom: 5px;
     display: flex;
-    flex-direction: column;
-    border: 1px solid rgba(0,0,0,0.1);
-}
-
-.summary-box span {
-    font-size: 0.7rem;
-    text-transform: uppercase;
-    opacity: 0.7;
-}
-
-.summary-box strong {
-    font-size: 1.2rem;
-    font-family: 'Courier New', monospace;
-}
-
-.summary-box.primary {
-    background: var(--color-madera-oscura);
-    color: var(--color-acento);
-    border: none;
-}
-
-.btn-pay {
-    margin-top: 20px;
-    width: 100%;
-    background: #2e7d32;
-    color: white;
-    border: none;
-    padding: 15px;
-    font-weight: bold;
-    text-transform: uppercase;
+    justify-content: space-between;
+    align-items: center;
     cursor: pointer;
-    box-shadow: 0 4px 0 #1b5e20;
+    border-radius: 4px;
+    flex-grow: 1;
+    gap: 10px; /* Separación mínima */
 }
 
-/* ... (Mantener todo lo anterior y añadir esto) ... */
+/* El nombre se corta con ... si es muy largo, protegiendo el precio */
+.item-info span:first-child {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
 
-.modal-overlay {
-    position: fixed;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.8);
-    z-index: 1000;
+.status-libre { background: var(--color-libre); border: 1px solid #ccc; }
+.status-mio { background: var(--color-mio); border: 1px solid #4caf50; font-weight: bold; }
+.status-otro { background: var(--color-otro); border: 1px solid #ff5722; opacity: 0.8; }
+
+.action-icons { display: flex; gap: 8px; margin-left: 10px; }
+
+.btn-icon {
+    background: #fff;
+    border: 1px solid #999;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
     display: flex;
     justify-content: center;
     align-items: center;
+    font-size: 0.8rem;
+}
+
+.modal-overlay {
+    position: fixed;
+    top:0; left:0; width:100%; height:100%;
+    background: rgba(0,0,0,0.8);
+    display: flex; justify-content: center; align-items: center;
+    z-index: 1000;
 }
 
 .modal-box {
     background: var(--color-papiro);
     padding: 25px;
-    border: 5px solid var(--color-madera-oscura);
+    border: 5px solid var(--color-madera-media);
     text-align: center;
-    width: 250px;
 }
 
-.btn-secondary {
-    background: #ccc;
+.btn-action, .btn-pay {
+    background: var(--color-acento);
+    color: white;
     border: none;
-    padding: 10px;
-    cursor: pointer;
+    padding: 15px;
+    border-radius: 5px;
+    font-weight: bold;
     text-transform: uppercase;
-    font-size: 0.8rem;
-}
-
-.action-icons {
-    display: flex;
-    gap: 8px;
-}
-
-.btn-icon {
-    background: white;
-    border: 1px solid var(--color-madera-media);
-    border-radius: 50%;
-    width: 25px;
-    height: 25px;
     cursor: pointer;
-    font-size: 0.8rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    width: 100%;
 }
-
-.btn-icon:hover { background: var(--color-acento); }
