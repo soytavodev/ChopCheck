@@ -1,8 +1,13 @@
 <?php
+// src/helpers/helpers.php
+// Funciones puras y utilidades globales.
+
 function generarCodigoMesa($len = 6) {
     $chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
     $code = '';
-    for ($i=0; $i<$len; $i++) $code .= $chars[random_int(0, strlen($chars)-1)];
+    for ($i = 0; $i < $len; $i++) {
+        $code .= $chars[random_int(0, strlen($chars) - 1)];
+    }
     return $code;
 }
 
@@ -18,11 +23,14 @@ function centimos_a_euros($cents) {
 function dividir_centimos_equitable($precio_centimos, $participante_ids) {
     $n = count($participante_ids);
     if ($n <= 0) return [];
+    
     sort($participante_ids, SORT_NUMERIC);
     $base = intdiv($precio_centimos, $n);
     $resto = $precio_centimos % $n;
+    
     $res = [];
     foreach ($participante_ids as $idx => $pid) {
+        // Los primeros se llevan el céntimo sobrante si la división no es exacta
         $res[$pid] = $base + ($idx < $resto ? 1 : 0);
     }
     return $res;
@@ -30,7 +38,12 @@ function dividir_centimos_equitable($precio_centimos, $participante_ids) {
 
 function generar_pin_pago($len = 4) {
     $pin = '';
-    for ($i=0; $i<$len; $i++) $pin .= strval(random_int(0,9));
-    if ($pin[0] === '0') { $pin[0] = strval(random_int(1,9)); }
+    for ($i = 0; $i < $len; $i++) {
+        $pin .= strval(random_int(0, 9));
+    }
+    // Evitar que el PIN empiece por 0 por usabilidad
+    if ($pin[0] === '0') { 
+        $pin[0] = strval(random_int(1, 9)); 
+    }
     return $pin;
 }

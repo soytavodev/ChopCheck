@@ -1,8 +1,18 @@
--- Base de datos ChopCheck (MVP con Admin)
+-- ==========================================
+-- ESTRUCTURA LIMPIA CHOPCHECK (ENTORNO LOCAL)
+-- ==========================================
+
+-- 1. Crear la base de datos y usarla
 CREATE DATABASE IF NOT EXISTS chopcheck CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE chopcheck;
 
-CREATE TABLE IF NOT EXISTS mesas (
+-- 2. Limpieza previa (Drop seguro saltando restricciones de llaves foráneas temporalmente)
+SET FOREIGN_KEY_CHECKS = 0;
+DROP TABLE IF EXISTS item_consumos, pagos, items, participantes, mesas, articulos, admins;
+SET FOREIGN_KEY_CHECKS = 1;
+
+-- 3. Creación de Tablas
+CREATE TABLE mesas (
   id INT AUTO_INCREMENT PRIMARY KEY,
   codigo VARCHAR(8) NOT NULL UNIQUE,
   nombre VARCHAR(100),
@@ -11,7 +21,7 @@ CREATE TABLE IF NOT EXISTS mesas (
   cerrado TINYINT(1) DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE IF NOT EXISTS participantes (
+CREATE TABLE participantes (
   id INT AUTO_INCREMENT PRIMARY KEY,
   mesa_id INT NOT NULL,
   nombre VARCHAR(60) NOT NULL,
@@ -20,7 +30,7 @@ CREATE TABLE IF NOT EXISTS participantes (
   FOREIGN KEY (mesa_id) REFERENCES mesas(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE IF NOT EXISTS items (
+CREATE TABLE items (
   id INT AUTO_INCREMENT PRIMARY KEY,
   mesa_id INT NOT NULL,
   nombre VARCHAR(120) NOT NULL,
@@ -31,7 +41,7 @@ CREATE TABLE IF NOT EXISTS items (
   FOREIGN KEY (anadido_por_participante_id) REFERENCES participantes(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE IF NOT EXISTS item_consumos (
+CREATE TABLE item_consumos (
   id INT AUTO_INCREMENT PRIMARY KEY,
   item_id INT NOT NULL,
   participante_id INT NOT NULL,
@@ -40,7 +50,7 @@ CREATE TABLE IF NOT EXISTS item_consumos (
   FOREIGN KEY (participante_id) REFERENCES participantes(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE IF NOT EXISTS pagos (
+CREATE TABLE pagos (
   id INT AUTO_INCREMENT PRIMARY KEY,
   mesa_id INT NOT NULL,
   participante_id INT NOT NULL,
@@ -55,60 +65,14 @@ CREATE TABLE IF NOT EXISTS pagos (
   INDEX idx_part_estado (participante_id, estado)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Catálogo de artículos para la vista admin
-CREATE TABLE IF NOT EXISTS articulos (
+CREATE TABLE articulos (
   id INT AUTO_INCREMENT PRIMARY KEY,
   nombre VARCHAR(120) NOT NULL,
   precio_centimos INT NOT NULL,
   activo TINYINT(1) DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Semillas básicas (ajusta precios a tu realidad)
-INSERT INTO articulos (nombre, precio_centimos) VALUES
- ('Cerveza caña', 250),
- ('Cerveza tercio', 300),
- ('Agua', 200),
- ('Refresco', 250),
- ('Vino copa', 350),
- ('Café solo', 150),
- ('Café con leche', 180),
- ('Té', 170),
- ('Patatas bravas', 800),
- ('Ensaladilla rusa', 700),
- ('Tortilla pincho', 350)
-ON DUPLICATE KEY UPDATE nombre = VALUES(nombre);
-
-
--- 1) Crear la columna 'numero' en 'mesas' (para instalaciones previas)
-ALTER TABLE mesas ADD COLUMN numero INT NULL AFTER nombre;
-
--- 2) Rellenar valores por primera vez (asignar Mesa 1, Mesa 2... según orden de creación)
-SET @n := 0;
-UPDATE mesas SET numero = (@n := @n + 1) ORDER BY id;
-
--- 3) (Recomendado) Crear catálogo de artículos si no existe y sembrar básicos
-CREATE TABLE IF NOT EXISTS articulos (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  nombre VARCHAR(120) NOT NULL,
-  precio_centimos INT NOT NULL,
-  activo TINYINT(1) DEFAULT 1
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-INSERT IGNORE INTO articulos (id, nombre, precio_centimos, activo) VALUES
- (1, 'Cerveza caña', 250, 1),
- (2, 'Cerveza tercio', 300, 1),
- (3, 'Agua', 200, 1),
- (4, 'Refresco', 250, 1),
- (5, 'Vino copa', 350, 1),
- (6, 'Café solo', 150, 1),
- (7, 'Café con leche', 180, 1),
- (8, 'Té', 170, 1),
- (9, 'Patatas bravas', 800, 1),
- (10,'Ensaladilla rusa', 700, 1),
- (11,'Tortilla pincho', 350, 1);
-
-
-CREATE TABLE IF NOT EXISTS admins (
+CREATE TABLE admins (
   id INT AUTO_INCREMENT PRIMARY KEY,
   username VARCHAR(50) NOT NULL UNIQUE,
   pass_hash VARCHAR(255) NOT NULL,
@@ -116,3 +80,40 @@ CREATE TABLE IF NOT EXISTS admins (
   creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- ==========================================
+-- 4. SEMILLAS (CATÁLOGO REALISTA POR CATEGORÍAS)
+-- ==========================================
+
+-- BEBIDAS
+INSERT INTO articulos (nombre, precio_centimos, activo) VALUES
+('Caña de Cerveza', 200, 1),
+('Doble de Cerveza', 350, 1),
+('Refresco Cola', 250, 1),
+('Agua Mineral 50cl', 150, 1),
+('Copa de Vino Tinto', 300, 1),
+('Café Solo', 150, 1);
+
+-- TAPAS Y RACIONES
+INSERT INTO articulos (nombre, precio_centimos, activo) VALUES
+('Patatas Bravas', 550, 1),
+('Croquetas Caseras (6 ud)', 600, 1),
+('Ensaladilla Rusa', 500, 1),
+('Tortilla de Patata', 450, 1),
+('Calamares a la Andaluza', 750, 1),
+('Tabla de Quesos', 850, 1);
+
+-- BOCADILLOS
+INSERT INTO articulos (nombre, precio_centimos, activo) VALUES
+('Bocadillo de Calamares', 650, 1),
+('Bocadillo de Jamón Ibérico', 800, 1),
+('Bocadillo de Lomo y Queso', 600, 1),
+('Bocadillo de Tortilla', 500, 1),
+('Bocadillo Vegetal', 550, 1);
+
+-- MONTADITOS
+INSERT INTO articulos (nombre, precio_centimos, activo) VALUES
+('Montadito de Pringá', 300, 1),
+('Montadito de Salmón y Queso', 350, 1),
+('Montadito de Chistorra', 250, 1),
+('Montadito de Solomillo', 400, 1),
+('Montadito de Queso de Cabra', 300, 1);
