@@ -15,9 +15,6 @@ require_once __DIR__ . '/../src/helpers/helpers.php';
 $route = $_GET['route'] ?? 'home';
 
 switch ($route) {
-    // ==========================================
-    // RUTAS DEL USUARIO (CLIENTE)
-    // ==========================================
     case 'home':
         require_once __DIR__ . '/../src/controllers/HomeController.php';
         $controller = new HomeController();
@@ -60,9 +57,6 @@ switch ($route) {
         $controller->apiPagoEstado();
         break;
 
-    // ==========================================
-    // RUTAS DEL ADMINISTRADOR (PERSONAL)
-    // ==========================================
     case 'admin_login':
         require_once __DIR__ . '/../src/controllers/AdminController.php';
         $controller = new AdminController();
@@ -93,7 +87,6 @@ switch ($route) {
         $controller->validarPago();
         break;
 
-    // NUEVAS RUTAS DE GESTIÓN INTERNA DE MESA
     case 'admin_mesa':
         require_once __DIR__ . '/../src/controllers/AdminController.php';
         $controller = new AdminController();
@@ -116,6 +109,13 @@ switch ($route) {
         require_once __DIR__ . '/../src/controllers/AdminController.php';
         $controller = new AdminController();
         $controller->addItemManual();
+        break;
+
+    // NUEVA RUTA PARA BORRAR ITEMS
+    case 'admin_delete_item':
+        require_once __DIR__ . '/../src/controllers/AdminController.php';
+        $controller = new AdminController();
+        $controller->deleteItem();
         break;
 
     case 'admin_logout':

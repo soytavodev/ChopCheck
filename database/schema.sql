@@ -1,24 +1,26 @@
 -- ==========================================
--- ESTRUCTURA LIMPIA CHOPCHECK (ENTORNO LOCAL)
+-- ESTRUCTURA DEFINITIVA CHOPCHECK (V1.0)
 -- ==========================================
 
--- 1. Crear la base de datos y usarla
-CREATE DATABASE IF NOT EXISTS chopcheck CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE chopcheck;
+-- ATENCIÓN: Solo descomentar estas dos líneas si estás en tu PC (Localhost).
+-- En InfinityFree (Producción) déjalas comentadas para evitar errores.
+-- CREATE DATABASE IF NOT EXISTS chopcheck CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+-- USE chopcheck;
 
--- 2. Limpieza previa (Drop seguro saltando restricciones de llaves foráneas temporalmente)
+-- 1. LIMPIEZA TOTAL
 SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS item_consumos, pagos, items, participantes, mesas, articulos, admins;
 SET FOREIGN_KEY_CHECKS = 1;
 
--- 3. Creación de Tablas
+-- 2. CREACIÓN DE TABLAS
 CREATE TABLE mesas (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  codigo VARCHAR(8) NOT NULL UNIQUE,
+  codigo VARCHAR(8) UNIQUE NULL,
   nombre VARCHAR(100),
   numero INT NULL,
+  seccion VARCHAR(50) NOT NULL DEFAULT 'General',
   creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  cerrado TINYINT(1) DEFAULT 0
+  cerrado TINYINT(1) DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE participantes (
@@ -81,39 +83,22 @@ CREATE TABLE admins (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ==========================================
--- 4. SEMILLAS (CATÁLOGO REALISTA POR CATEGORÍAS)
+-- 3. SEMILLAS (PLANO ESTÁTICO DE MESAS)
 -- ==========================================
+INSERT INTO mesas (numero, nombre, seccion, cerrado) VALUES
+(1, 'Mesa 1', 'Terraza', 1), (2, 'Mesa 2', 'Terraza', 1), (3, 'Mesa 3', 'Terraza', 1), (4, 'Mesa 4', 'Terraza', 1),
+(5, 'Mesa 5', 'Salón', 1), (6, 'Mesa 6', 'Salón', 1), (7, 'Mesa 7', 'Salón', 1), (8, 'Mesa 8', 'Salón', 1),
+(9, 'Taburete 1', 'Barra', 1), (10, 'Taburete 2', 'Barra', 1), (11, 'Taburete 3', 'Barra', 1), (12, 'Taburete 4', 'Barra', 1);
 
--- BEBIDAS
+-- ==========================================
+-- 4. SEMILLAS (CATÁLOGO DE RESTAURANTE)
+-- ==========================================
 INSERT INTO articulos (nombre, precio_centimos, activo) VALUES
-('Caña de Cerveza', 200, 1),
-('Doble de Cerveza', 350, 1),
-('Refresco Cola', 250, 1),
-('Agua Mineral 50cl', 150, 1),
-('Copa de Vino Tinto', 300, 1),
-('Café Solo', 150, 1);
-
--- TAPAS Y RACIONES
-INSERT INTO articulos (nombre, precio_centimos, activo) VALUES
-('Patatas Bravas', 550, 1),
-('Croquetas Caseras (6 ud)', 600, 1),
-('Ensaladilla Rusa', 500, 1),
-('Tortilla de Patata', 450, 1),
-('Calamares a la Andaluza', 750, 1),
-('Tabla de Quesos', 850, 1);
-
--- BOCADILLOS
-INSERT INTO articulos (nombre, precio_centimos, activo) VALUES
-('Bocadillo de Calamares', 650, 1),
-('Bocadillo de Jamón Ibérico', 800, 1),
-('Bocadillo de Lomo y Queso', 600, 1),
-('Bocadillo de Tortilla', 500, 1),
-('Bocadillo Vegetal', 550, 1);
-
--- MONTADITOS
-INSERT INTO articulos (nombre, precio_centimos, activo) VALUES
-('Montadito de Pringá', 300, 1),
-('Montadito de Salmón y Queso', 350, 1),
-('Montadito de Chistorra', 250, 1),
-('Montadito de Solomillo', 400, 1),
-('Montadito de Queso de Cabra', 300, 1);
+('Caña de Cerveza', 200, 1), ('Doble de Cerveza', 350, 1), ('Refresco Cola', 250, 1),
+('Agua Mineral 50cl', 150, 1), ('Copa de Vino Tinto', 300, 1), ('Café Solo', 150, 1),
+('Patatas Bravas', 550, 1), ('Croquetas Caseras (6 ud)', 600, 1), ('Ensaladilla Rusa', 500, 1),
+('Tortilla de Patata', 450, 1), ('Calamares a la Andaluza', 750, 1), ('Tabla de Quesos', 850, 1),
+('Bocadillo de Calamares', 650, 1), ('Bocadillo de Jamón Ibérico', 800, 1), ('Bocadillo de Lomo y Queso', 600, 1),
+('Bocadillo de Tortilla', 500, 1), ('Bocadillo Vegetal', 550, 1),
+('Montadito de Pringá', 300, 1), ('Montadito de Salmón y Queso', 350, 1), ('Montadito de Chistorra', 250, 1),
+('Montadito de Solomillo', 400, 1), ('Montadito de Queso de Cabra', 300, 1);

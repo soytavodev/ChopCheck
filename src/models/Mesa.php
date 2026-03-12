@@ -13,37 +13,35 @@ class Mesa {
 
     public static function getAllWithStats() {
         $db = getDB();
+        // Añadimos la columna "pagos_pendientes" para el semáforo y ordenamos por sección y número
         $sql = "SELECT m.*,
                     (SELECT COUNT(*) FROM participantes p WHERE p.mesa_id = m.id AND p.activo = 1) AS num_participantes,
-                    (SELECT COUNT(*) FROM items i WHERE i.mesa_id = m.id) AS num_items
+                    (SELECT COUNT(*) FROM items i WHERE i.mesa_id = m.id) AS num_items,
+                    (SELECT COUNT(*) FROM pagos pa WHERE pa.mesa_id = m.id AND pa.estado = 'pendiente') AS pagos_pendientes
                 FROM mesas m
-                ORDER BY m.cerrado ASC, m.numero ASC, m.id ASC";
+                ORDER BY FIELD(m.seccion, 'Terraza', 'Salón', 'Barra'), m.numero ASC";
         return $db->query($sql)->fetchAll();
     }
 
-    public static function findByNumero($numero) {
+    public static function findById($id) {
         $db = getDB();
-        $stmt = $db->prepare("SELECT * FROM mesas WHERE numero = ? ORDER BY id DESC LIMIT 1");
-        $stmt->execute([$numero]);
+        $stmt = $db->prepare("SELECT * FROM mesas WHERE id = ?");
+        $stmt->execute([$id]);
         return $stmt->fetch();
     }
 
-    public static function crear($codigo, $nombre, $numero) {
+    // Ya no creamos, solo "Abrimos" una mesa estática existente
+    public static function abrir($id, $nuevo_codigo) {
         $db = getDB();
-        $stmt = $db->prepare("INSERT INTO mesas (codigo, nombre, numero, cerrado) VALUES (?, ?, ?, 0)");
-        return $stmt->execute([$codigo, $nombre, $numero]);
+        $stmt = $db->prepare("UPDATE mesas SET codigo = ?, cerrado = 0 WHERE id = ?");
+        return $stmt->execute([$nuevo_codigo, $id]);
     }
 
-    public static function reabrir($id, $nuevo_codigo, $nuevo_nombre) {
-        $db = getDB();
-        $stmt = $db->prepare("UPDATE mesas SET codigo = ?, nombre = ?, cerrado = 0 WHERE id = ?");
-        return $stmt->execute([$nuevo_codigo, $nuevo_nombre, $id]);
-    }
-
-    // NUEVO: Cambiar el estado de la mesa (0 = abierta, 1 = cerrada)
     public static function cambiarEstado($id, $cerrado) {
         $db = getDB();
-        $stmt = $db->prepare("UPDATE mesas SET cerrado = ? WHERE id = ?");
-        return $stmt->execute([$cerrado, $id]);
+        // Si la cerramos, borramos el código para que nadie más pueda entrar con él
+        $codigo = $cerrado ? NULL : generarCodigoMesa(6);
+        $stmt = $db->prepare("UPDATE mesas SET cerrado = ?, codigo = ? WHERE id = ?");
+        return $stmt->execute([$cerrado, $codigo, $id]);
     }
 }

@@ -39,7 +39,7 @@
             <form method="get" action="index.php" style="margin-bottom: 15px;">
                 <input type="hidden" name="route" value="admin_mesa">
                 <input type="hidden" name="codigo" value="<?= htmlspecialchars($mesa['codigo']) ?>">
-                <input type="text" name="q" value="<?= htmlspecialchars($busqueda) ?>" placeholder="Buscar en catálogo..." style="padding: 6px; width: 60%;">
+                <input type="text" name="q" value="<?= htmlspecialchars($busqueda ?? '') ?>" placeholder="Buscar en catálogo..." style="padding: 6px; width: 60%;">
                 <button type="submit" style="padding: 6px;">Buscar</button>
             </form>
 
@@ -85,10 +85,22 @@
             <?php if (empty($items)): ?>
                 <p style="color: #888;">La mesa no ha pedido nada.</p>
             <?php else: ?>
-                <ul style="max-height: 400px; overflow-y: auto;">
+                <ul style="max-height: 400px; overflow-y: auto; list-style: none; padding-left: 0;">
                     <?php foreach ($items as $it): ?>
-                        <li style="margin-bottom: 5px; border-bottom: 1px solid #eee; padding-bottom: 5px;">
-                            <strong><?= htmlspecialchars($it['nombre']) ?></strong> — <?= centimos_a_euros($it['precio_centimos']) ?>
+                        <li style="margin-bottom: 5px; border-bottom: 1px solid #eee; padding-bottom: 5px; display: flex; justify-content: space-between; align-items: center; background: #fafafa; padding: 10px; border-radius: 5px;">
+                            
+                            <div style="font-size: 16px;">
+                                <strong><?= htmlspecialchars($it['nombre']) ?></strong> — <?= centimos_a_euros($it['precio_centimos']) ?>
+                            </div>
+                            
+                            <form action="index.php?route=admin_delete_item" method="post" style="margin: 0;" onsubmit="return confirm('¿Seguro que quieres eliminar este producto de la cuenta?');">
+                                <input type="hidden" name="codigo" value="<?= htmlspecialchars($mesa['codigo']) ?>">
+                                <input type="hidden" name="item_id" value="<?= $it['id'] ?>">
+                                <button type="submit" <?= $mesa['cerrado'] ? 'disabled' : '' ?> style="background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: <?= $mesa['cerrado'] ? 'not-allowed' : 'pointer' ?>; font-size: 14px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                                    ✖ Borrar
+                                </button>
+                            </form>
+                            
                         </li>
                     <?php endforeach; ?>
                 </ul>

@@ -43,32 +43,39 @@ class AdminController {
         $error = $_SESSION['error'] ?? null; $msg = $_SESSION['msg'] ?? null;
         unset($_SESSION['error'], $_SESSION['msg']);
         
-        $mesas = Mesa::getAllWithStats();
+        $mesasRaw = Mesa::getAllWithStats();
+        
+        // Agrupar mesas por sección para la vista
+        $mesasPorSeccion = [];
+        foreach ($mesasRaw as $m) {
+            $mesasPorSeccion[$m['seccion']][] = $m;
+        }
+
         require_once __DIR__ . '/../../views/admin/dashboard.php';
     }
 
-    public function crearMesa() {
+    // NUEVO: Abrir una mesa estática con un clic
+    public function crearMesa() { // Mantenemos el nombre de la ruta original por compatibilidad
         $this->requireLogin();
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') { header("Location: index.php?route=admin_dashboard"); exit; }
-        $numero = (int)($_POST['numero'] ?? 0); $nombre = trim($_POST['nombre'] ?? '');
-        if ($numero <= 0) { $_SESSION['error'] = "El número debe ser mayor que 0."; header("Location: index.php?route=admin_dashboard"); exit; }
+        
+        $mesa_id = (int)($_POST['mesa_id'] ?? 0);
+        $mesa = Mesa::findById($mesa_id);
 
-        do {
-            $codigo = generarCodigoMesa(6);
-            $existeCodigo = Mesa::findByCodigo($codigo);
-        } while ($existeCodigo);
+        if ($mesa && (int)$mesa['cerrado'] === 1) {
+            do {
+                $codigo = generarCodigoMesa(6);
+                $existeCodigo = Mesa::findByCodigo($codigo);
+            } while ($existeCodigo);
 
-        $mesaExistente = Mesa::findByNumero($numero);
-        if ($mesaExistente) {
-            if ((int)$mesaExistente['cerrado'] === 0) {
-                $_SESSION['error'] = "La Mesa $numero ya está abierta."; header("Location: index.php?route=admin_dashboard"); exit;
-            }
-            Mesa::reabrir($mesaExistente['id'], $codigo, $nombre ?: $mesaExistente['nombre']);
-            $_SESSION['msg'] = "Mesa $numero reabierta con el nuevo código: $codigo";
-        } else {
-            Mesa::crear($codigo, $nombre, $numero);
-            $_SESSION['msg'] = "Mesa $numero creada con el código: $codigo";
+            Mesa::abrir($mesa['id'], $codigo);
+            $_SESSION['msg'] = "Mesa abierta. Código generado: " . $codigo;
+            // Redirigir directamente a la gestión de esa mesa
+            header("Location: index.php?route=admin_mesa&codigo=" . $codigo);
+            exit;
         }
+        
+        $_SESSION['error'] = "La mesa ya estaba abierta o no existe.";
         header("Location: index.php?route=admin_dashboard"); exit;
     }
 
@@ -95,8 +102,6 @@ class AdminController {
         }
         header("Location: index.php?route=admin_dashboard"); exit;
     }
-
-    // --- NUEVOS MÉTODOS DE GESTIÓN DE MESA ---
 
     public function gestionarMesa() {
         $this->requireLogin();
@@ -127,8 +132,17 @@ class AdminController {
         $mesa = Mesa::findByCodigo($codigo);
         if ($mesa) {
             Mesa::cambiarEstado($mesa['id'], $cerrado);
-            $_SESSION['msg'] = $cerrado ? "Mesa cerrada correctamente." : "Mesa reabierta correctamente.";
-            header("Location: index.php?route=admin_mesa&codigo=" . urlencode($codigo));
+            if ($cerrado === 1) {
+                Participante::desactivarPorMesa($mesa['id']);
+            }
+            $_SESSION['msg'] = $cerrado ? "Mesa cerrada. Todos los clientes han sido expulsados." : "Mesa reabierta.";
+            
+            // Si la cerramos, volvemos al dashboard. Si la abrimos, nos quedamos.
+            if ($cerrado === 1) {
+                header("Location: index.php?route=admin_dashboard");
+            } else {
+                header("Location: index.php?route=admin_mesa&codigo=" . urlencode($mesa['codigo']));
+            }
             exit;
         }
         header("Location: index.php?route=admin_dashboard"); exit;
@@ -172,6 +186,28 @@ class AdminController {
             $_SESSION['msg'] = "Producto manual añadido.";
         } else {
             $_SESSION['error'] = "Error al añadir. Verifica datos y que la mesa esté abierta.";
+        }
+        header("Location: index.php?route=admin_mesa&codigo=" . urlencode($codigo)); exit;
+    }
+
+    public function deleteItem() {
+        $this->requireLogin();
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') { header("Location: index.php?route=admin_dashboard"); exit; }
+
+        $codigo = strtoupper(trim($_POST['codigo'] ?? ''));
+        $item_id = (int)($_POST['item_id'] ?? 0);
+
+        $mesa = Mesa::findByCodigo($codigo);
+        if ($mesa && $item_id > 0 && (int)$mesa['cerrado'] === 0) {
+            $item = Item::findById($item_id);
+            if ($item && $item['mesa_id'] == $mesa['id']) {
+                Item::eliminar($item_id);
+                $_SESSION['msg'] = "❌ Producto eliminado: " . htmlspecialchars($item['nombre']);
+            } else {
+                $_SESSION['error'] = "Error de seguridad.";
+            }
+        } else {
+            $_SESSION['error'] = "No se pudo eliminar.";
         }
         header("Location: index.php?route=admin_mesa&codigo=" . urlencode($codigo)); exit;
     }

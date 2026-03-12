@@ -39,10 +39,24 @@ class Item {
         }
     }
 
-    // NUEVO: Crear un item en la mesa
     public static function crear($mesa_id, $nombre, $precio_centimos) {
         $db = getDB();
         $stmt = $db->prepare("INSERT INTO items (mesa_id, nombre, precio_centimos) VALUES (?, ?, ?)");
         return $stmt->execute([$mesa_id, $nombre, $precio_centimos]);
+    }
+
+    // NUEVO: Encontrar un item específico
+    public static function findById($id) {
+        $db = getDB();
+        $stmt = $db->prepare("SELECT * FROM items WHERE id = ?");
+        $stmt->execute([$id]);
+        return $stmt->fetch();
+    }
+
+    // NUEVO: Eliminar un item por completo
+    public static function eliminar($id) {
+        $db = getDB();
+        $stmt = $db->prepare("DELETE FROM items WHERE id = ?");
+        return $stmt->execute([$id]);
     }
 }
