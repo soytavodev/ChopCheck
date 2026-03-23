@@ -39,13 +39,21 @@ class Item {
         }
     }
 
-    public static function crear($mesa_id, $nombre, $precio_centimos) {
+    // MODIFICADO: Capacidad de auto-asignar si hay un solo participante
+    public static function crear($mesa_id, $nombre, $precio_centimos, $auto_assign_pid = null) {
         $db = getDB();
         $stmt = $db->prepare("INSERT INTO items (mesa_id, nombre, precio_centimos) VALUES (?, ?, ?)");
-        return $stmt->execute([$mesa_id, $nombre, $precio_centimos]);
+        $stmt->execute([$mesa_id, $nombre, $precio_centimos]);
+        $item_id = $db->lastInsertId();
+
+        // Si el controlador nos dice que solo hay 1 persona, le cobramos el ítem directamente
+        if ($auto_assign_pid) {
+            $stmt = $db->prepare("INSERT INTO item_consumos (item_id, participante_id) VALUES (?, ?)");
+            $stmt->execute([$item_id, $auto_assign_pid]);
+        }
+        return $item_id;
     }
 
-    // NUEVO: Encontrar un item específico
     public static function findById($id) {
         $db = getDB();
         $stmt = $db->prepare("SELECT * FROM items WHERE id = ?");
@@ -53,7 +61,6 @@ class Item {
         return $stmt->fetch();
     }
 
-    // NUEVO: Eliminar un item por completo
     public static function eliminar($id) {
         $db = getDB();
         $stmt = $db->prepare("DELETE FROM items WHERE id = ?");

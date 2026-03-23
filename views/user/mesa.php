@@ -3,14 +3,14 @@
 if (isset($mesa['cerrado']) && (int)$mesa['cerrado'] === 1) {
     echo '<div id="ticket-mesa"><div id="mesa-cerrada-flag"></div></div>';
     echo '<script>alert("La mesa ha sido cerrada por el administrador. Redirigiendo al inicio..."); window.location.href="index.php?route=home";</script>';
-    exit; // Cortamos la carga del HTML para los expulsados
+    exit; 
 }
 ?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Mesa <?= htmlspecialchars($mesa['codigo'] ?? '') ?> - ChopCheck</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>Mesa <?= htmlspecialchars($mesa['codigo'] ?? '') ?> - ChopCheck</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -18,8 +18,9 @@ if (isset($mesa['cerrado']) && (int)$mesa['cerrado'] === 1) {
     <p>Código: <strong><?= htmlspecialchars($mesa['codigo'] ?? '') ?></strong></p>
 
     <div id="ticket-mesa">
-        <div style="display: flex; gap: 20px;">
-            <div style="border: 1px solid #ccc; padding: 15px; width: 45%;">
+        <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+            
+            <div style="border: 1px solid #ccc; padding: 15px; flex: 1; min-width: 300px; border-radius: 8px; background: var(--card-bg);">
                 <h2>Participantes</h2>
                 <p><strong>Total pendiente:</strong> <?= centimos_a_euros($totalRestante ?? 0) ?></p>
                 <ul>
@@ -32,8 +33,8 @@ if (isset($mesa['cerrado']) && (int)$mesa['cerrado'] === 1) {
                             <?= htmlspecialchars($p['nombre']) ?> —
                             <strong><?= centimos_a_euros($totales[$pid] ?? 0) ?></strong>
                             <?= $badge ?>
-                            &nbsp;|&nbsp;
-                            <a href="index.php?route=resumen&codigo=<?= urlencode($mesa['codigo']) ?>&pid=<?= $pid ?>">Tu consumo</a>
+                            <br>
+                            <a href="index.php?route=resumen&codigo=<?= urlencode($mesa['codigo']) ?>&pid=<?= $pid ?>" style="font-size: 0.9rem;">Ver mi consumo</a>
                         </li>
                     <?php endforeach; ?>
                     <?php if(empty($participantes)): ?>
@@ -42,7 +43,7 @@ if (isset($mesa['cerrado']) && (int)$mesa['cerrado'] === 1) {
                 </ul>
             </div>
 
-            <div style="border: 1px solid #ccc; padding: 15px; width: 45%;">
+            <div style="border: 1px solid #ccc; padding: 15px; flex: 1; min-width: 300px; border-radius: 8px; background: var(--card-bg);">
                 <h2>Productos consumidos</h2>
                 <?php if (empty($items)): ?>
                     <p>Aún no hay productos.</p>
@@ -81,12 +82,13 @@ if (isset($mesa['cerrado']) && (int)$mesa['cerrado'] === 1) {
                                                     <button type="submit" 
                                                         <?= $bloqueado ? 'disabled title="Bloqueado por pago pendiente o realizado"' : '' ?>
                                                         style="cursor: <?= $bloqueado ? 'not-allowed' : 'pointer' ?>; 
-                                                               padding: 5px 10px; 
+                                                               padding: 8px 12px; 
                                                                border: 1px solid <?= $tiene ? '#28a745' : '#ccc' ?>; 
                                                                border-radius: 15px; 
                                                                background-color: <?= $tiene ? '#d4edda' : '#f8f9fa' ?>; 
                                                                color: <?= $tiene ? '#155724' : '#333' ?>;
-                                                               opacity: <?= $bloqueado ? '0.5' : '1' ?>;">
+                                                               opacity: <?= $bloqueado ? '0.5' : '1' ?>;
+                                                               min-width: 60px;">
                                                         <?= htmlspecialchars($p['nombre']) ?>
                                                     </button>
                                                 </form>
@@ -101,12 +103,14 @@ if (isset($mesa['cerrado']) && (int)$mesa['cerrado'] === 1) {
             </div>
         </div>
     </div>
-    <br>
-    <a href="index.php?route=home">← Salir al inicio</a>
+    <div style="margin-top: 20px; text-align: center;">
+        <a href="index.php?route=home" style="display: inline-block; padding: 10px 20px; background: #ddd; border-radius: 6px; color: #333;">← Salir al inicio</a>
+    </div>
 
     <script>
         setInterval(function() {
-            fetch(window.location.href)
+            // EL FIX ESTÁ AQUÍ: { cache: 'no-store' } obliga al móvil a no usar memoria antigua
+            fetch(window.location.href, { cache: 'no-store' })
                 .then(response => {
                     if (!response.ok) throw new Error('Error en red');
                     return response.text();
@@ -115,13 +119,10 @@ if (isset($mesa['cerrado']) && (int)$mesa['cerrado'] === 1) {
                     let parser = new DOMParser();
                     let doc = parser.parseFromString(html, 'text/html');
                     
-                    // ===============================================
-                    // DETECCIÓN DE EXPULSIÓN (Si la mesa fue cerrada)
-                    // ===============================================
                     if (doc.getElementById('mesa-cerrada-flag')) {
                         alert("La mesa ha sido cerrada. Serás redirigido al inicio de la app.");
                         window.location.href = 'index.php?route=home';
-                        return; // Cortamos la ejecución aquí
+                        return; 
                     }
                     
                     let ticketNuevo = doc.getElementById('ticket-mesa');
@@ -133,5 +134,3 @@ if (isset($mesa['cerrado']) && (int)$mesa['cerrado'] === 1) {
                 .catch(error => console.error('Fallo de sincronización:', error));
         }, 2000);
     </script>
-</body>
-</html>

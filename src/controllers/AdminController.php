@@ -45,7 +45,6 @@ class AdminController {
         
         $mesasRaw = Mesa::getAllWithStats();
         
-        // Agrupar mesas por sección para la vista
         $mesasPorSeccion = [];
         foreach ($mesasRaw as $m) {
             $mesasPorSeccion[$m['seccion']][] = $m;
@@ -54,8 +53,7 @@ class AdminController {
         require_once __DIR__ . '/../../views/admin/dashboard.php';
     }
 
-    // NUEVO: Abrir una mesa estática con un clic
-    public function crearMesa() { // Mantenemos el nombre de la ruta original por compatibilidad
+    public function crearMesa() { 
         $this->requireLogin();
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') { header("Location: index.php?route=admin_dashboard"); exit; }
         
@@ -70,7 +68,6 @@ class AdminController {
 
             Mesa::abrir($mesa['id'], $codigo);
             $_SESSION['msg'] = "Mesa abierta. Código generado: " . $codigo;
-            // Redirigir directamente a la gestión de esa mesa
             header("Location: index.php?route=admin_mesa&codigo=" . $codigo);
             exit;
         }
@@ -132,12 +129,20 @@ class AdminController {
         $mesa = Mesa::findByCodigo($codigo);
         if ($mesa) {
             Mesa::cambiarEstado($mesa['id'], $cerrado);
-            if ($cerrado === 1) {
-                Participante::desactivarPorMesa($mesa['id']);
-            }
-            $_SESSION['msg'] = $cerrado ? "Mesa cerrada. Todos los clientes han sido expulsados." : "Mesa reabierta.";
             
-            // Si la cerramos, volvemos al dashboard. Si la abrimos, nos quedamos.
+            // ===============================================
+            // MAGIA DE LIMPIEZA NUCLEAR AL CERRAR LA MESA
+            // ===============================================
+            if ($cerrado === 1) {
+                $db = getDB();
+                // Borra todo físicamente de la BD
+                $db->prepare("DELETE FROM items WHERE mesa_id = ?")->execute([$mesa['id']]);
+                $db->prepare("DELETE FROM pagos WHERE mesa_id = ?")->execute([$mesa['id']]);
+                $db->prepare("DELETE FROM participantes WHERE mesa_id = ?")->execute([$mesa['id']]);
+            }
+
+            $_SESSION['msg'] = $cerrado ? "Mesa cerrada. Se ha vaciado la cuenta completamente." : "Mesa reabierta.";
+            
             if ($cerrado === 1) {
                 header("Location: index.php?route=admin_dashboard");
             } else {
@@ -160,8 +165,12 @@ class AdminController {
         $art = Articulo::findById($articulo_id);
 
         if ($mesa && $art && (int)$mesa['cerrado'] === 0) {
+            // FIX: Auto-asignación si hay 1 sola persona en la mesa
+            $participantes = Participante::getByMesaId($mesa['id']);
+            $unico_pid = (count($participantes) === 1) ? $participantes[0]['id'] : null;
+
             for ($i=0; $i<$cantidad; $i++) {
-                Item::crear($mesa['id'], $art['nombre'], $art['precio_centimos']);
+                Item::crear($mesa['id'], $art['nombre'], $art['precio_centimos'], $unico_pid);
             }
             $_SESSION['msg'] = "$cantidad x " . htmlspecialchars($art['nombre']) . " añadido a la mesa.";
         } else {
@@ -182,7 +191,11 @@ class AdminController {
         $mesa = Mesa::findByCodigo($codigo);
 
         if ($mesa && $nombre && $centimos > 0 && (int)$mesa['cerrado'] === 0) {
-            Item::crear($mesa['id'], $nombre, $centimos);
+            // FIX: Auto-asignación si hay 1 sola persona en la mesa
+            $participantes = Participante::getByMesaId($mesa['id']);
+            $unico_pid = (count($participantes) === 1) ? $participantes[0]['id'] : null;
+
+            Item::crear($mesa['id'], $nombre, $centimos, $unico_pid);
             $_SESSION['msg'] = "Producto manual añadido.";
         } else {
             $_SESSION['error'] = "Error al añadir. Verifica datos y que la mesa esté abierta.";
