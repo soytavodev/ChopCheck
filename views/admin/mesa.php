@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-		<meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestionar Mesa <?= htmlspecialchars($mesa['codigo']) ?> - Admin ChopCheck</title>
     <link rel="stylesheet" href="styles.css">
 </head>
@@ -12,7 +12,7 @@
         <a href="index.php?route=admin_dashboard" style="text-decoration: none; color: #0056b3;">← Volver al Dashboard</a>
     </div>
 
-    <h1>Gestionar Mesa <?= htmlspecialchars($mesa['numero'] ?? '') ?> <?= htmlspecialchars($mesa['nombre'] ? ' - '.$mesa['nombre'] : '') ?></h1>
+    <h1>Gestionar: <?= htmlspecialchars($mesa['seccion'] ?? 'Local') ?>, <?= htmlspecialchars($mesa['nombre'] ?? '') ?></h1>
     <p>Código: <strong style="font-size: 20px; color: #0056b3; letter-spacing: 2px;"><?= htmlspecialchars($mesa['codigo']) ?></strong></p>
 
     <?php if (!empty($error)): ?>
@@ -28,7 +28,7 @@
             <input type="hidden" name="codigo" value="<?= htmlspecialchars($mesa['codigo']) ?>">
             <input type="hidden" name="cerrado" value="<?= $mesa['cerrado'] ? '0' : '1' ?>">
             <button type="submit" style="background: <?= $mesa['cerrado'] ? '#28a745' : '#dc3545' ?>; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer;">
-                <?= $mesa['cerrado'] ? 'Abrir Mesa' : 'Cerrar Mesa (Bloquea pedidos)' ?>
+                <?= $mesa['cerrado'] ? 'Abrir Mesa' : 'Cerrar Mesa (Vacía y bloquea)' ?>
             </button>
         </form>
     </div>
@@ -71,7 +71,7 @@
             </form>
         </div>
 
-        <div style="flex: 1; min-width: 300px; background: white; padding: 20px; border-radius: 8px; border: 1px solid #ccc;">
+        <div id="admin-resumen-actual" style="flex: 1; min-width: 300px; background: white; padding: 20px; border-radius: 8px; border: 1px solid #ccc;">
             <h2>Resumen Actual</h2>
             
             <h3>Participantes (<?= count($participantes) ?>)</h3>
@@ -89,19 +89,16 @@
                 <ul style="max-height: 400px; overflow-y: auto; list-style: none; padding-left: 0;">
                     <?php foreach ($items as $it): ?>
                         <li style="margin-bottom: 5px; border-bottom: 1px solid #eee; padding-bottom: 5px; display: flex; justify-content: space-between; align-items: center; background: #fafafa; padding: 10px; border-radius: 5px;">
-                            
                             <div style="font-size: 16px;">
                                 <strong><?= htmlspecialchars($it['nombre']) ?></strong> — <?= centimos_a_euros($it['precio_centimos']) ?>
                             </div>
-                            
-                            <form action="index.php?route=admin_delete_item" method="post" style="margin: 0;" onsubmit="return confirm('¿Seguro que quieres eliminar este producto de la cuenta?');">
+                            <form action="index.php?route=admin_delete_item" method="post" style="margin: 0;" onsubmit="return confirm('¿Seguro que quieres eliminar este producto?');">
                                 <input type="hidden" name="codigo" value="<?= htmlspecialchars($mesa['codigo']) ?>">
                                 <input type="hidden" name="item_id" value="<?= $it['id'] ?>">
-                                <button type="submit" <?= $mesa['cerrado'] ? 'disabled' : '' ?> style="background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: <?= $mesa['cerrado'] ? 'not-allowed' : 'pointer' ?>; font-size: 14px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                                <button type="submit" <?= $mesa['cerrado'] ? 'disabled' : '' ?> style="background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: <?= $mesa['cerrado'] ? 'not-allowed' : 'pointer' ?>; font-size: 14px; font-weight: bold;">
                                     ✖ Borrar
                                 </button>
                             </form>
-                            
                         </li>
                     <?php endforeach; ?>
                 </ul>
@@ -109,5 +106,43 @@
         </div>
 
     </div>
+
+    <a href="#" id="btn-top" style="position: fixed; bottom: 20px; right: 20px; background: var(--wood-primary); color: white; padding: 12px 18px; border-radius: 50%; text-decoration: none; font-size: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); display: none; z-index: 9999;">⬆️</a>
+
+    <script>
+        // MANTENER SCROLL (Error 2)
+        window.addEventListener('scroll', function() {
+            sessionStorage.setItem('scrollPosAdmin', window.scrollY);
+            document.getElementById('btn-top').style.display = (window.scrollY > 200) ? 'block' : 'none';
+        });
+        window.addEventListener('DOMContentLoaded', function() {
+            let scrollPos = sessionStorage.getItem('scrollPosAdmin');
+            if (scrollPos) window.scrollTo(0, parseInt(scrollPos));
+        });
+
+        // ACTUALIZACIÓN EN VIVO DE LA CAJA (Error 1)
+        setInterval(function() {
+            fetch(window.location.href, { cache: 'no-store' })
+                .then(r => r.text())
+                .then(html => {
+                    let doc = new DOMParser().parseFromString(html, 'text/html');
+                    let nuevo = doc.getElementById('admin-resumen-actual');
+                    if (nuevo) document.getElementById('admin-resumen-actual').innerHTML = nuevo.innerHTML;
+                }).catch(e => console.log('Error AJAX'));
+        }, 2000);
+
+        // ESCÁNER DE ALERTAS GLOBALES (Error 5)
+        setInterval(async function() {
+            try {
+                let res = await fetch('index.php?route=admin_alertas', { cache: 'no-store' });
+                if (res.ok) {
+                    let data = await res.json();
+                    if (data.alertas && data.alertas.length > 0) {
+                        data.alertas.forEach(msg => alert(msg));
+                    }
+                }
+            } catch(e) {}
+        }, 3000);
+    </script>
 </body>
 </html>

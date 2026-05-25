@@ -1,45 +1,19 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-		<meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Plano del Local - ChopCheck</title>
     <link rel="stylesheet" href="styles.css">
-    <link rel="icon" href="img/chopcheck.png" type="image/png">
+    <link rel="icon" href="img/favicon.png" type="image/png">
     <style>
-        .grid-mesas {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-            gap: 15px;
-            margin-bottom: 30px;
-        }
-        .mesa-card {
-            border-radius: 8px;
-            padding: 20px;
-            text-align: center;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-            text-decoration: none;
-            color: inherit;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            min-height: 120px;
-        }
-        .mesa-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
-        }
-        /* Semáforo de colores */
+        .grid-mesas { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; margin-bottom: 30px; }
+        .mesa-card { border-radius: 8px; padding: 20px; text-align: center; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; text-decoration: none; color: inherit; display: flex; flex-direction: column; justify-content: center; min-height: 120px; }
+        .mesa-card:hover { transform: translateY(-3px); box-shadow: 0 6px 12px rgba(0,0,0,0.15); }
         .mesa-blanca { background: #ffffff; border: 2px solid #e0e0e0; color: #555; }
         .mesa-naranja { background: #fff4e6; border: 2px solid #ff9900; }
         .mesa-verde { background: #e6f4ea; border: 2px solid #28a745; animation: pulse 2s infinite; }
-        
-        @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.4); }
-            70% { box-shadow: 0 0 0 10px rgba(40, 167, 69, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0); }
-        }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(40, 167, 69, 0); } 100% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0); } }
     </style>
 </head>
 <body>
@@ -80,7 +54,6 @@
         <h2 style="border-bottom: 1px solid #ccc; padding-bottom: 5px; color: var(--wood-primary);"><?= htmlspecialchars($seccion) ?></h2>
         <div class="grid-mesas">
             <?php foreach ($mesasSec as $m): 
-                // Lógica del Semáforo
                 $clase = 'mesa-blanca';
                 if ((int)$m['cerrado'] === 0) {
                     $clase = ((int)$m['pagos_pendientes'] > 0) ? 'mesa-verde' : 'mesa-naranja';
@@ -97,9 +70,12 @@
                     </form>
                 <?php else: ?>
                     <a href="index.php?route=admin_mesa&codigo=<?= urlencode($m['codigo']) ?>" class="mesa-card <?= $clase ?>">
-                        <span style="font-size: 1.5rem; display:block; margin-bottom:5px;">
-                            <?= $clase === 'mesa-verde' ? '💳' : '👥' ?>
-                        </span>
+                        <?php if ($clase === 'mesa-verde'): ?>
+                            <span style="font-size: 0.85rem; font-weight: bold; color: var(--success); display: block; margin-bottom: 5px;">Listo para pagar</span>
+                            <span style="font-size: 1.5rem; display:block; margin-bottom:5px;">💳</span>
+                        <?php else: ?>
+                            <span style="font-size: 1.5rem; display:block; margin-bottom:5px;">👥</span>
+                        <?php endif; ?>
                         <strong style="font-size: 1.1rem;"><?= htmlspecialchars($m['nombre']) ?></strong>
                         <span style="display:block; font-size: 0.8rem; margin-top: 5px; background: rgba(0,0,0,0.1); padding: 2px 5px; border-radius: 4px;">
                             Cód: <strong><?= htmlspecialchars($m['codigo']) ?></strong>
@@ -110,5 +86,20 @@
         </div>
     <?php endforeach; ?>
 
+    <script>
+        // ESCÁNER DE ALERTAS GLOBALES (Error 5)
+        setInterval(async function() {
+            try {
+                let res = await fetch('index.php?route=admin_alertas', { cache: 'no-store' });
+                if (res.ok) {
+                    let data = await res.json();
+                    if (data.alertas && data.alertas.length > 0) {
+                        data.alertas.forEach(msg => alert(msg));
+                        window.location.reload(); // Recarga para poner la tarjeta en verde
+                    }
+                }
+            } catch(e) {}
+        }, 3000);
+    </script>
 </body>
 </html>

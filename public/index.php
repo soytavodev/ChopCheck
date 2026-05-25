@@ -1,6 +1,5 @@
 <?php
 // public/index.php
-
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
@@ -14,116 +13,92 @@ require_once __DIR__ . '/../src/helpers/helpers.php';
 
 $route = $_GET['route'] ?? 'home';
 
+// RUTA RÁPIDA PARA CAMBIAR IDIOMA
+if ($route === 'change_lang') {
+    $lang = $_GET['l'] ?? 'es';
+    if (in_array($lang, ['es', 'en'])) { $_SESSION['lang'] = $lang; }
+    $referer = $_SERVER['HTTP_REFERER'] ?? 'index.php?route=home';
+    header("Location: $referer");
+    exit;
+}
+
 switch ($route) {
     case 'home':
         require_once __DIR__ . '/../src/controllers/HomeController.php';
-        $controller = new HomeController();
-        $controller->index();
+        $controller = new HomeController(); $controller->index();
         break;
-
     case 'join':
         require_once __DIR__ . '/../src/controllers/MesaController.php';
-        $controller = new MesaController();
-        $controller->join();
+        $controller = new MesaController(); $controller->join();
         break;
-
     case 'mesa':
         require_once __DIR__ . '/../src/controllers/MesaController.php';
-        $controller = new MesaController();
-        $controller->show();
+        $controller = new MesaController(); $controller->show();
         break;
-
     case 'toggle_consumo':
         require_once __DIR__ . '/../src/controllers/MesaController.php';
-        $controller = new MesaController();
-        $controller->toggleConsumo();
+        $controller = new MesaController(); $controller->toggleConsumo();
         break;
-
     case 'resumen':
         require_once __DIR__ . '/../src/controllers/MesaController.php';
-        $controller = new MesaController();
-        $controller->resumen();
+        $controller = new MesaController(); $controller->resumen();
         break;
-
     case 'generar_pin':
         require_once __DIR__ . '/../src/controllers/MesaController.php';
-        $controller = new MesaController();
-        $controller->generarPin();
+        $controller = new MesaController(); $controller->generarPin();
         break;
-
     case 'api_pago_estado':
         require_once __DIR__ . '/../src/controllers/MesaController.php';
-        $controller = new MesaController();
-        $controller->apiPagoEstado();
+        $controller = new MesaController(); $controller->apiPagoEstado();
         break;
-
     case 'admin_login':
         require_once __DIR__ . '/../src/controllers/AdminController.php';
-        $controller = new AdminController();
-        $controller->showLogin();
+        $controller = new AdminController(); $controller->showLogin();
         break;
-
     case 'admin_do_login':
         require_once __DIR__ . '/../src/controllers/AdminController.php';
-        $controller = new AdminController();
-        $controller->doLogin();
+        $controller = new AdminController(); $controller->doLogin();
         break;
-
     case 'admin_dashboard':
         require_once __DIR__ . '/../src/controllers/AdminController.php';
-        $controller = new AdminController();
-        $controller->dashboard();
+        $controller = new AdminController(); $controller->dashboard();
         break;
-        
     case 'admin_crear_mesa':
         require_once __DIR__ . '/../src/controllers/AdminController.php';
-        $controller = new AdminController();
-        $controller->crearMesa();
+        $controller = new AdminController(); $controller->crearMesa();
         break;
-
     case 'admin_validar_pago':
         require_once __DIR__ . '/../src/controllers/AdminController.php';
-        $controller = new AdminController();
-        $controller->validarPago();
+        $controller = new AdminController(); $controller->validarPago();
         break;
-
     case 'admin_mesa':
         require_once __DIR__ . '/../src/controllers/AdminController.php';
-        $controller = new AdminController();
-        $controller->gestionarMesa();
+        $controller = new AdminController(); $controller->gestionarMesa();
         break;
-
     case 'admin_toggle_estado':
         require_once __DIR__ . '/../src/controllers/AdminController.php';
-        $controller = new AdminController();
-        $controller->toggleEstadoMesa();
+        $controller = new AdminController(); $controller->toggleEstadoMesa();
         break;
-
     case 'admin_add_articulo':
         require_once __DIR__ . '/../src/controllers/AdminController.php';
-        $controller = new AdminController();
-        $controller->addArticulo();
+        $controller = new AdminController(); $controller->addArticulo();
         break;
-
     case 'admin_add_manual':
         require_once __DIR__ . '/../src/controllers/AdminController.php';
-        $controller = new AdminController();
-        $controller->addItemManual();
+        $controller = new AdminController(); $controller->addItemManual();
         break;
-
-    // NUEVA RUTA PARA BORRAR ITEMS
     case 'admin_delete_item':
         require_once __DIR__ . '/../src/controllers/AdminController.php';
-        $controller = new AdminController();
-        $controller->deleteItem();
+        $controller = new AdminController(); $controller->deleteItem();
         break;
-
+    case 'admin_alertas':
+        require_once __DIR__ . '/../src/controllers/AdminController.php';
+        $controller = new AdminController(); $controller->checkAlertas();
+        break;
     case 'admin_logout':
         require_once __DIR__ . '/../src/controllers/AdminController.php';
-        $controller = new AdminController();
-        $controller->logout();
+        $controller = new AdminController(); $controller->logout();
         break;
-
     default:
         http_response_code(404);
         echo "<h1>Error 404</h1><p>Ruta no encontrada.</p>";

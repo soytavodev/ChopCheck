@@ -1,6 +1,5 @@
 <?php
 // src/helpers/helpers.php
-// Funciones puras y utilidades globales.
 
 function generarCodigoMesa($len = 6) {
     $chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
@@ -30,7 +29,6 @@ function dividir_centimos_equitable($precio_centimos, $participante_ids) {
     
     $res = [];
     foreach ($participante_ids as $idx => $pid) {
-        // Los primeros se llevan el céntimo sobrante si la división no es exacta
         $res[$pid] = $base + ($idx < $resto ? 1 : 0);
     }
     return $res;
@@ -41,9 +39,27 @@ function generar_pin_pago($len = 4) {
     for ($i = 0; $i < $len; $i++) {
         $pin .= strval(random_int(0, 9));
     }
-    // Evitar que el PIN empiece por 0 por usabilidad
-    if ($pin[0] === '0') { 
-        $pin[0] = strval(random_int(1, 9)); 
-    }
+    if ($pin[0] === '0') { $pin[0] = strval(random_int(1, 9)); }
     return $pin;
+}
+
+// ==========================================
+// SISTEMA DE IDIOMAS (i18n)
+// ==========================================
+function getLang() {
+    return $_SESSION['lang'] ?? 'es'; 
+}
+
+function __($key) {
+    static $dict = null; 
+    if ($dict === null) {
+        $lang = getLang();
+        $file = __DIR__ . "/../lang/{$lang}.php";
+        if (file_exists($file)) {
+            $dict = require $file;
+        } else {
+            $dict = require __DIR__ . "/../lang/es.php"; 
+        }
+    }
+    return $dict[$key] ?? $key;
 }
