@@ -17,7 +17,7 @@ class Admin {
         return false;
     }
 
-    // Método temporal para crear tu primer usuario
+    // Lo usa database/crear_admin.php para crear usuarios desde la terminal
     public static function crearSetup($username, $password) {
         $db = getDB();
         $hash = password_hash($password, PASSWORD_DEFAULT);

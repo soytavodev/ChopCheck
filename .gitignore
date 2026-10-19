@@ -1,4 +1,3 @@
-config/db_connect.php
+config/database.php
 *.log
 .DS_Store
-config/database.php
