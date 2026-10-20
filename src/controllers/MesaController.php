@@ -104,6 +104,15 @@ class MesaController {
             exit;
         }
 
+        // El producto y la persona tienen que ser de esta mesa: si no, con el código
+        // de una mesa se podrían marcar consumos de otra.
+        $item = Item::findById($item_id);
+        $part = Participante::findByIdAndMesa($participante_id, $mesa['id']);
+        if (!$item || (int)$item['mesa_id'] !== (int)$mesa['id'] || !$part) {
+            header("Location: index.php?route=mesa&codigo=" . urlencode($codigo));
+            exit;
+        }
+
         Item::toggleConsumo($item_id, $participante_id);
         header("Location: index.php?route=mesa&codigo=" . urlencode($codigo));
         exit;
@@ -178,6 +187,11 @@ class MesaController {
 
         $mesa = Mesa::findByCodigo($codigo);
         if (!$mesa) {
+            header("Location: index.php?route=home");
+            exit;
+        }
+
+        if (!Participante::findByIdAndMesa($pid, $mesa['id'])) {
             header("Location: index.php?route=home");
             exit;
         }
